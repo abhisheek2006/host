@@ -6,6 +6,7 @@ Upload .py/.zip files, admin approves, run in Docker containers on VPS.
 Environment variables are encrypted and stored in the database.
 """
 
+import asyncio
 import io
 import os
 import sys
@@ -18,6 +19,13 @@ import zipfile
 import requests
 from pathlib import Path
 from datetime import datetime, timedelta
+
+# Python 3.14 removed auto-creation of the event loop.
+# Pyrogram calls asyncio.get_event_loop() at import time.
+try:
+    asyncio.get_event_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
 from pyrogram import Client, enums, filters, types
 
