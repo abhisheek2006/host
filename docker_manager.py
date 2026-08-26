@@ -4,6 +4,24 @@ import subprocess
 from pathlib import Path
 from config import DOCKER_IMAGE, NODE_IMAGE, MAX_MEMORY, MAX_CPUS, MAX_PIDS, logger
 
+HOSTBOT_IMAGE = "hostbot-python"
+
+
+def build_custom_image() -> None:
+    """Build the custom Python image with build-essential pre-installed."""
+    dockerfile = Path(__file__).parent / "Dockerfile"
+    if not dockerfile.exists():
+        return
+    r = subprocess.run(
+        ["docker", "build", "-t", HOSTBOT_IMAGE, "-f", str(dockerfile), "."],
+        capture_output=True, text=True, timeout=600,
+        cwd=str(dockerfile.parent),
+    )
+    if r.returncode == 0:
+        logger.info("Custom image %s built successfully", HOSTBOT_IMAGE)
+    else:
+        logger.error("Failed to build custom image: %s", r.stderr)
+
 
 def make_container_name(user_id: int, bot_id: int) -> str:
     return f"hostbot_{user_id}_{bot_id}"
@@ -16,20 +34,17 @@ def docker_run(
 ) -> str:
     """Start a Docker container. Returns container ID or raises."""
     install_parts: list[str] = []
-    image = DOCKER_IMAGE
+    image = HOSTBOT_IMAGE
     entry_cmd = "python bot.py"
 
     if file_type == "js":
         image = NODE_IMAGE
         entry_cmd = "node bot.js"
-        # Install Node deps if package.json exists
         pkg_path = work_dir / "package.json"
         if pkg_path.exists():
             install_parts.append("npm install --no-audit --no-fund")
     else:
-        # Always install build tools first for C extensions (tgcrypto, etc.)
-        install_parts.append("apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*")
-        # Python deps
+        # Install from requirements.txt if present in the user's project
         req_path = work_dir / "requirements.txt"
         if req_path.exists():
             install_parts.append("pip install --no-cache-dir -r requirements.txt")
@@ -43,12 +58,9 @@ def docker_run(
     cmd = [
         "docker", "run", "-d",
         "--name", container_name,
-        "--user", "root",
         "--memory", memory,
         "--cpus", cpus,
         "--pids-limit", str(pids),
-        "--security-opt", "no-new-privileges",
-        "--tmpfs", "/tmp:size=100m",
         "--network", "bridge",
     ]
 

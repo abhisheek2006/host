@@ -55,6 +55,7 @@ from env_manager import (
 )
 from docker_manager import (
     make_container_name, docker_run, docker_stop, docker_exists, docker_logs,
+    build_custom_image,
 )
 
 # ---------------------------------------------------------------------------
@@ -1581,6 +1582,7 @@ def main() -> None:
     active_users = db_load_active_users()
     admin_ids = db_load_admins()
     cleanup_stale_bots()
+    build_custom_image()
     logger.info("Hosting bot starting...")
     app.run()
 
