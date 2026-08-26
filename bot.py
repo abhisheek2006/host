@@ -285,6 +285,9 @@ def env_management_kb(bot_id: int) -> types.InlineKeyboardMarkup:
         [
             [
                 types.InlineKeyboardButton("➕ Add Variable", callback_data=f"env_add:{bot_id}", style=enums.ButtonStyle.PRIMARY),
+                types.InlineKeyboardButton("✏️ Edit Variable", callback_data=f"env_edit:{bot_id}", style=enums.ButtonStyle.SECONDARY),
+            ],
+            [
                 types.InlineKeyboardButton("🗑 Delete Variable", callback_data=f"env_del:{bot_id}", style=enums.ButtonStyle.DANGER),
             ],
             [
@@ -845,6 +848,43 @@ async def handle_text(client: Client, message: types.Message) -> None:
         await message.reply_text(f"✅ Variable `{key}` deleted from bot `{bot_id}`.")
         return
 
+    if state and state.startswith("env_edit:"):
+        bot_id = int(state.split(":")[1])
+        b = db_get_bot(bot_id, uid)
+        if not b:
+            b_any = db_get_bot_any(bot_id)
+            if not b_any or not is_admin(uid):
+                awaiting_input.pop(uid, None)
+                await message.reply_text("Access denied.")
+                return
+            b = b_any
+        key = text.strip()
+        keys = get_env_keys(bot_id)
+        if key not in keys:
+            awaiting_input.pop(uid, None)
+            await message.reply_text(f"❌ Key `{key}` not found.\n\nAvailable keys: {', '.join(keys)}")
+            return
+        awaiting_input[uid] = f"env_edit_val:{bot_id}:{key}"
+        await message.reply_text(f"Send the new value for `{key}`.\n/cancel to abort.")
+        return
+
+    if state and state.startswith("env_edit_val:"):
+        awaiting_input.pop(uid, None)
+        parts_state = state.split(":", 2)
+        bot_id = int(parts_state[1])
+        key = parts_state[2]
+        b = db_get_bot(bot_id, uid)
+        if not b:
+            b_any = db_get_bot_any(bot_id)
+            if not b_any or not is_admin(uid):
+                await message.reply_text("Access denied.")
+                return
+            b = b_any
+        encrypted = encrypt_value(text)
+        db_save_env(bot_id, key, encrypted)
+        await message.reply_text(f"✅ Variable `{key}` updated for bot `{bot_id}`.")
+        return
+
     # Broadcast handler
     if uid in admin_ids and message.reply_to_message and "broadcast" in (message.reply_to_message.text or "").lower():
         users = list(active_users)
@@ -866,7 +906,7 @@ async def handle_text(client: Client, message: types.Message) -> None:
 # ---------------------------------------------------------------------------
 
 
-@app.on_callback_query(filters.regex(r"^(approve|reject|review|sbot|stop|restart|delete|logs|noop|env|env_add|env_del|back_bot):"))
+@app.on_callback_query(filters.regex(r"^(approve|reject|review|sbot|stop|restart|delete|logs|noop|env|env_add|env_del|env_edit|back_bot):"))
 async def cb_router(client: Client, cb: types.CallbackQuery) -> None:
     uid = cb.from_user.id
     parts = cb.data.split(":", 2)
@@ -900,6 +940,10 @@ async def cb_router(client: Client, cb: types.CallbackQuery) -> None:
         awaiting_input[uid] = f"env_del:{parts[1]}"
         await cb.answer()
         await cb.message.reply_text("Send the variable key to delete.\n/cancel to abort.")
+    elif action == "env_edit":
+        awaiting_input[uid] = f"env_edit:{parts[1]}"
+        await cb.answer()
+        await cb.message.reply_text("Send the variable key to edit.\n/cancel to abort.")
     elif action == "back_bot":
         bot_id = int(parts[1])
         b = db_get_bot(bot_id, uid)
