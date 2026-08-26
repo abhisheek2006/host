@@ -27,6 +27,8 @@ def docker_run(
         if pkg_path.exists():
             install_parts.append("npm install --no-audit --no-fund")
     else:
+        # Always install build tools first for C extensions (tgcrypto, etc.)
+        install_parts.append("apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*")
         # Python deps
         req_path = work_dir / "requirements.txt"
         if req_path.exists():
