@@ -196,14 +196,14 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
 
     rows.append(
         [
-            types.InlineKeyboardButton("📤 Upload File", callback_data="upload", style=enums.ButtonStyle.PRIMARY),
-            types.InlineKeyboardButton("📂 My Bots", callback_data="check_files", style=enums.ButtonStyle.SECONDARY),
+            types.InlineKeyboardButton("📤 Upload File", callback_data="upload"),
+            types.InlineKeyboardButton("📂 My Bots", callback_data="check_files"),
         ]
     )
     rows.append(
         [
-            types.InlineKeyboardButton("⚡ Bot Speed", callback_data="speed", style=enums.ButtonStyle.SECONDARY),
-            types.InlineKeyboardButton("📊 Statistics", callback_data="stats", style=enums.ButtonStyle.SECONDARY),
+            types.InlineKeyboardButton("⚡ Bot Speed", callback_data="speed"),
+            types.InlineKeyboardButton("📊 Statistics", callback_data="stats"),
         ]
     )
 
@@ -212,20 +212,20 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
         ptxt = f"📋 Pending ({pending})" if pending else "📋 Pending Files"
         rows.append(
             [
-                types.InlineKeyboardButton(ptxt, callback_data="view_pending", style=enums.ButtonStyle.PRIMARY),
-                types.InlineKeyboardButton("💳 Subscriptions", callback_data="subscription", style=enums.ButtonStyle.SECONDARY),
+                types.InlineKeyboardButton(ptxt, callback_data="view_pending"),
+                types.InlineKeyboardButton("💳 Subscriptions", callback_data="subscription"),
             ]
         )
         rows.append(
             [
-                types.InlineKeyboardButton("📢 Broadcast", callback_data="broadcast", style=enums.ButtonStyle.SECONDARY),
-                types.InlineKeyboardButton("👑 Admin Panel", callback_data="admin_panel", style=enums.ButtonStyle.PRIMARY),
+                types.InlineKeyboardButton("📢 Broadcast", callback_data="broadcast"),
+                types.InlineKeyboardButton("👑 Admin Panel", callback_data="admin_panel"),
             ]
         )
         lock_text = "🔒 Lock Bot" if not bot_locked else "Unlock Bot"
         lock_data = "lock_bot" if not bot_locked else "unlock_bot"
         rows.append(
-            [types.InlineKeyboardButton(lock_text, callback_data=lock_data, style=enums.ButtonStyle.DANGER)]
+            [types.InlineKeyboardButton(lock_text, callback_data=lock_data)]
         )
 
     if YOUR_USERNAME:
@@ -235,7 +235,7 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
         )
 
     rows.append(
-        [types.InlineKeyboardButton("⏱ Uptime", callback_data="uptime", style=enums.ButtonStyle.SECONDARY)]
+        [types.InlineKeyboardButton("⏱ Uptime", callback_data="uptime")]
     )
     return types.InlineKeyboardMarkup(rows)
 
@@ -246,33 +246,33 @@ def bot_control_kb(bot_id: int, is_running: bool, approval: str) -> types.Inline
         return types.InlineKeyboardMarkup(
             [
                 [
-                    types.InlineKeyboardButton("🛑 Stop", callback_data=f"stop:{bot_id}", style=enums.ButtonStyle.DANGER),
-                    types.InlineKeyboardButton("🔄 Restart", callback_data=f"restart:{bot_id}", style=enums.ButtonStyle.PRIMARY),
+                    types.InlineKeyboardButton("🛑 Stop", callback_data=f"stop:{bot_id}"),
+                    types.InlineKeyboardButton("🔄 Restart", callback_data=f"restart:{bot_id}"),
                 ],
                 [
-                    types.InlineKeyboardButton("📜 Logs", callback_data=f"logs:{bot_id}", style=enums.ButtonStyle.SECONDARY),
-                    types.InlineKeyboardButton("🔐 Environment", callback_data=f"env:{bot_id}", style=enums.ButtonStyle.SECONDARY),
+                    types.InlineKeyboardButton("📜 Logs", callback_data=f"logs:{bot_id}"),
+                    types.InlineKeyboardButton("🔐 Environment", callback_data=f"env:{bot_id}"),
                 ],
                 [
-                    types.InlineKeyboardButton("🗑 Delete", callback_data=f"delete:{bot_id}", style=enums.ButtonStyle.DANGER),
+                    types.InlineKeyboardButton("🗑 Delete", callback_data=f"delete:{bot_id}"),
                 ],
                 [
-                    types.InlineKeyboardButton(f"Status: {aicon} {approval.title()}", callback_data="noop", style=enums.ButtonStyle.SECONDARY),
+                    types.InlineKeyboardButton(f"Status: {aicon} {approval.title()}", callback_data="noop"),
                 ],
             ]
         )
     return types.InlineKeyboardMarkup(
         [
             [
-                types.InlineKeyboardButton("▶️ Start", callback_data=f"sbot:{bot_id}", style=enums.ButtonStyle.PRIMARY),
-                types.InlineKeyboardButton("📜 Logs", callback_data=f"logs:{bot_id}", style=enums.ButtonStyle.SECONDARY),
+                types.InlineKeyboardButton("▶️ Start", callback_data=f"sbot:{bot_id}"),
+                types.InlineKeyboardButton("📜 Logs", callback_data=f"logs:{bot_id}"),
             ],
             [
-                types.InlineKeyboardButton("🔐 Environment", callback_data=f"env:{bot_id}", style=enums.ButtonStyle.SECONDARY),
-                types.InlineKeyboardButton("🗑 Delete", callback_data=f"delete:{bot_id}", style=enums.ButtonStyle.DANGER),
+                types.InlineKeyboardButton("🔐 Environment", callback_data=f"env:{bot_id}"),
+                types.InlineKeyboardButton("🗑 Delete", callback_data=f"delete:{bot_id}"),
             ],
             [
-                types.InlineKeyboardButton(f"Status: {aicon} {approval.title()}", callback_data="noop", style=enums.ButtonStyle.SECONDARY),
+                types.InlineKeyboardButton(f"Status: {aicon} {approval.title()}", callback_data="noop"),
             ],
         ]
     )
@@ -282,8 +282,8 @@ def approval_kb(user_id: int, filename: str) -> types.InlineKeyboardMarkup:
     return types.InlineKeyboardMarkup(
         [
             [
-                types.InlineKeyboardButton("✅ Approve", callback_data=f"approve:{user_id}:{filename}", style=enums.ButtonStyle.PRIMARY),
-                types.InlineKeyboardButton("❌ Reject", callback_data=f"reject:{user_id}:{filename}", style=enums.ButtonStyle.DANGER),
+                types.InlineKeyboardButton("✅ Approve", callback_data=f"approve:{user_id}:{filename}"),
+                types.InlineKeyboardButton("❌ Reject", callback_data=f"reject:{user_id}:{filename}"),
             ],
         ]
     )
@@ -293,14 +293,14 @@ def env_management_kb(bot_id: int) -> types.InlineKeyboardMarkup:
     return types.InlineKeyboardMarkup(
         [
             [
-                types.InlineKeyboardButton("➕ Add Variable", callback_data=f"env_add:{bot_id}", style=enums.ButtonStyle.PRIMARY),
-                types.InlineKeyboardButton("✏️ Edit Variable", callback_data=f"env_edit:{bot_id}", style=enums.ButtonStyle.SECONDARY),
+                types.InlineKeyboardButton("➕ Add Variable", callback_data=f"env_add:{bot_id}"),
+                types.InlineKeyboardButton("✏️ Edit Variable", callback_data=f"env_edit:{bot_id}"),
             ],
             [
-                types.InlineKeyboardButton("🗑 Delete Variable", callback_data=f"env_del:{bot_id}", style=enums.ButtonStyle.DANGER),
+                types.InlineKeyboardButton("🗑 Delete Variable", callback_data=f"env_del:{bot_id}"),
             ],
             [
-                types.InlineKeyboardButton("🔙 Back", callback_data=f"back_bot:{bot_id}", style=enums.ButtonStyle.SECONDARY),
+                types.InlineKeyboardButton("🔙 Back", callback_data=f"back_bot:{bot_id}"),
             ],
         ]
     )
@@ -584,12 +584,11 @@ async def cmd_pending(client: Client, message: types.Message) -> None:
                 types.InlineKeyboardButton(
                     f"👤 {b['user_id']} | 📁 {b['filename']}",
                     callback_data=f"review:{b['id']}",
-                    style=enums.ButtonStyle.SECONDARY,
                 )
             ]
         )
     kb_rows.append(
-        [types.InlineKeyboardButton("🔙 Back", callback_data="back_main", style=enums.ButtonStyle.SECONDARY)]
+        [types.InlineKeyboardButton("🔙 Back", callback_data="back_main")]
     )
     await message.reply_text(text, reply_markup=types.InlineKeyboardMarkup(kb_rows))
 
@@ -1006,12 +1005,11 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
                     types.InlineKeyboardButton(
                         f"{aicon} {b['filename']}",
                         callback_data=cb_data,
-                        style=enums.ButtonStyle.PRIMARY if b["status"] == "running" else enums.ButtonStyle.SECONDARY,
                     )
                 ]
             )
         kb_rows.append(
-            [types.InlineKeyboardButton("🔙 Back", callback_data="back_main", style=enums.ButtonStyle.SECONDARY)]
+            [types.InlineKeyboardButton("🔙 Back", callback_data="back_main")]
         )
         await cb.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(kb_rows))
 
@@ -1084,13 +1082,13 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
             reply_markup=types.InlineKeyboardMarkup(
                 [
                     [
-                        types.InlineKeyboardButton("➕ Add Sub", callback_data="add_sub", style=enums.ButtonStyle.PRIMARY),
-                        types.InlineKeyboardButton("➖ Remove Sub", callback_data="rm_sub", style=enums.ButtonStyle.DANGER),
+                        types.InlineKeyboardButton("➕ Add Sub", callback_data="add_sub"),
+                        types.InlineKeyboardButton("➖ Remove Sub", callback_data="rm_sub"),
                     ],
                     [
-                        types.InlineKeyboardButton("🔍 Check Sub", callback_data="check_sub", style=enums.ButtonStyle.SECONDARY),
+                        types.InlineKeyboardButton("🔍 Check Sub", callback_data="check_sub"),
                     ],
-                    [types.InlineKeyboardButton("🔙 Back", callback_data="back_main", style=enums.ButtonStyle.SECONDARY)],
+                    [types.InlineKeyboardButton("🔙 Back", callback_data="back_main")],
                 ]
             ),
         )
@@ -1112,14 +1110,14 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
             reply_markup=types.InlineKeyboardMarkup(
                 [
                     [
-                        types.InlineKeyboardButton("➕ Add Admin", callback_data="add_admin_init", style=enums.ButtonStyle.PRIMARY),
-                        types.InlineKeyboardButton("➖ Remove Admin", callback_data="rm_admin_init", style=enums.ButtonStyle.DANGER),
+                        types.InlineKeyboardButton("➕ Add Admin", callback_data="add_admin_init"),
+                        types.InlineKeyboardButton("➖ Remove Admin", callback_data="rm_admin_init"),
                     ],
                     [
-                        types.InlineKeyboardButton("📋 List Admins", callback_data="list_admins", style=enums.ButtonStyle.SECONDARY),
-                        types.InlineKeyboardButton("📋 Pending", callback_data="view_pending", style=enums.ButtonStyle.SECONDARY),
+                        types.InlineKeyboardButton("📋 List Admins", callback_data="list_admins"),
+                        types.InlineKeyboardButton("📋 Pending", callback_data="view_pending"),
                     ],
-                    [types.InlineKeyboardButton("🔙 Back", callback_data="back_main", style=enums.ButtonStyle.SECONDARY)],
+                    [types.InlineKeyboardButton("🔙 Back", callback_data="back_main")],
                 ]
             ),
         )
@@ -1140,12 +1138,11 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
                     types.InlineKeyboardButton(
                         f"👤 {b['user_id']} | 📁 {b['filename']}",
                         callback_data=f"review:{b['id']}",
-                        style=enums.ButtonStyle.SECONDARY,
                     )
                 ]
             )
         kb_rows.append(
-            [types.InlineKeyboardButton("🔙 Back", callback_data="back_main", style=enums.ButtonStyle.SECONDARY)]
+            [types.InlineKeyboardButton("🔙 Back", callback_data="back_main")]
         )
         await cb.message.edit_text(
             f"📋 **Pending Files** ({len(bots)})",
@@ -1226,7 +1223,7 @@ async def cb_sub_callbacks(client: Client, cb: types.CallbackQuery) -> None:
         await cb.message.edit_text(
             f"👑 **Admins**\n\n" + "\n".join(lines),
             reply_markup=types.InlineKeyboardMarkup(
-                [[types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel", style=enums.ButtonStyle.SECONDARY)]]
+                [[types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]]
             ),
         )
 
