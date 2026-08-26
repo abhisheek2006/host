@@ -8,19 +8,24 @@ HOSTBOT_IMAGE = "hostbot-python"
 
 
 def build_custom_image() -> None:
-    """Build the custom Python image with build-essential pre-installed."""
+    """Build the custom Python image with build-essential pre-installed. Skips if already exists."""
+    r = subprocess.run(
+        ["docker", "image", "inspect", HOSTBOT_IMAGE],
+        capture_output=True, text=True, timeout=10,
+    )
+    if r.returncode == 0:
+        logger.info("Custom image %s already exists, skipping build", HOSTBOT_IMAGE)
+        return
+
     dockerfile = Path(__file__).parent / "Dockerfile"
     if not dockerfile.exists():
         return
-    r = subprocess.run(
+    subprocess.Popen(
         ["docker", "build", "-t", HOSTBOT_IMAGE, "-f", str(dockerfile), "."],
-        capture_output=True, text=True, timeout=600,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         cwd=str(dockerfile.parent),
     )
-    if r.returncode == 0:
-        logger.info("Custom image %s built successfully", HOSTBOT_IMAGE)
-    else:
-        logger.error("Failed to build custom image: %s", r.stderr)
+    logger.info("Building custom image %s in background...", HOSTBOT_IMAGE)
 
 
 def make_container_name(user_id: int, bot_id: int) -> str:
