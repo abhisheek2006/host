@@ -249,7 +249,7 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
 
 def reply_keyboard_kb(user_id: int) -> types.ReplyKeyboardMarkup:
     """Build a ReplyKeyboard with text buttons like the Railway bot."""
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     if is_admin(user_id):
         buttons = [
             types.KeyboardButton("📤 Upload File"),
