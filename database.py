@@ -42,7 +42,7 @@ def init_db() -> None:
     bots_col.create_index([("approval", ASCENDING)])
     bots_col.create_index([("status", ASCENDING)])
     envs_col.create_index([("bot_id", ASCENDING)], unique=False)
-    envs_col.create_index([("bot_id", "key")], unique=True)
+    envs_col.create_index([("bot_id", ASCENDING), ("key", ASCENDING)], unique=True)
 
     for aid in ADMIN_IDS:
         admins_col.update_one({"user_id": aid}, {"$setOnInsert": {"user_id": aid}}, upsert=True)
