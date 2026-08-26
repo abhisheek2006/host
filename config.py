@@ -10,10 +10,33 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# --- Validate required env vars ---
+_PLACEHOLDERS = {
+    "your-mongodb-connection-string",
+    "your-bot-token-here",
+    "your-api-id",
+    "your-api-hash",
+    "your-r2-access-key",
+    "your-r2-secret-key",
+    "your-r2-endpoint",
+    "run-setup-vps-to-generate",
+    "",
+}
+
+
+def _require(key: str) -> str:
+    val = os.environ.get(key, "").strip()
+    if not val or val.lower() in _PLACEHOLDERS:
+        print(f"\n  [FATAL] Environment variable '{key}' is missing or still a placeholder.")
+        print(f"  Edit your .env file and set a real value.\n")
+        sys.exit(1)
+    return val
+
+
 # --- Telegram ---
-BOT_TOKEN = os.environ["BOT_TOKEN"]
-API_ID = int(os.environ.get("API_ID", "0"))
-API_HASH = os.environ.get("API_HASH", "")
+BOT_TOKEN = _require("BOT_TOKEN")
+API_ID = int(_require("API_ID"))
+API_HASH = _require("API_HASH")
 
 # --- Access control ---
 OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
@@ -35,14 +58,14 @@ A4F_API_KEY = os.environ.get("A4F_API_KEY", "")
 A4F_MODEL = os.environ.get("A4F_MODEL", "")
 
 # --- R2 ---
-R2_ENDPOINT = os.environ["R2_ENDPOINT"]
-R2_ACCESS_KEY_ID = os.environ["R2_ACCESS_KEY_ID"]
-R2_SECRET_ACCESS_KEY = os.environ["R2_SECRET_ACCESS_KEY"]
+R2_ENDPOINT = _require("R2_ENDPOINT")
+R2_ACCESS_KEY_ID = _require("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = _require("R2_SECRET_ACCESS_KEY")
 R2_BUCKET = os.environ.get("R2_BUCKET", "hosting")
 R2_REGION = os.environ.get("R2_REGION", "auto")
 
 # --- MongoDB ---
-MONGO_URI = os.environ.get("MONGO_URI", "")
+MONGO_URI = _require("MONGO_URI")
 MONGO_DB_NAME = os.environ.get("MONGO_DB_NAME", "hostbot")
 
 # --- Encryption ---

@@ -1,5 +1,6 @@
 """Database - MongoDB collections and CRUD operations."""
 
+import sys
 from datetime import datetime
 from pymongo import MongoClient, ASCENDING
 from config import MONGO_URI, MONGO_DB_NAME, ADMIN_IDS, logger
@@ -16,7 +17,19 @@ _counters_col = None  # type: ignore[assignment]
 
 def init_db() -> None:
     global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, _counters_col
-    mongo_client = MongoClient(MONGO_URI)
+    try:
+        mongo_client = MongoClient(
+            MONGO_URI,
+            serverSelectionTimeoutMS=10000,
+            connectTimeoutMS=10000,
+            socketTimeoutMS=20000,
+        )
+        mongo_client.admin.command("ping")
+    except Exception as e:
+        logger.error("MongoDB connection failed: %s", e)
+        print("\n  [FATAL] Cannot connect to MongoDB. Check your MONGO_URI in .env\n")
+        sys.exit(1)
+
     db = mongo_client[MONGO_DB_NAME]
     bots_col = db["bots"]
     subs_col = db["subscriptions"]
