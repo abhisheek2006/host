@@ -407,16 +407,22 @@ def delete_env_file(dest: Path) -> None:
 # --- ZIP Extraction with Entry Detection ---
 
 _ENTRY_NAMES = ["bot.py", "main.py", "app.py", "run.py", "start.py", "index.py", "handler.py", "web.py"]
+_JS_ENTRY_NAMES = ["bot.js", "main.js", "app.js", "index.js", "run.js", "start.js", "server.js"]
 
 
 def find_entry(work_dir: Path) -> tuple[str, str]:
-    """Find the main bot file in extracted directory."""
-    # 1. Check common entry point names
+    """Find the main bot file in extracted directory. Returns (filename, type)."""
+    # 1. Check common Python entry point names
     for name in _ENTRY_NAMES:
         if (work_dir / name).exists():
             return name, "py"
 
-    # 2. Look for any .py with entry point patterns
+    # 2. Check common JS entry point names
+    for name in _JS_ENTRY_NAMES:
+        if (work_dir / name).exists():
+            return name, "js"
+
+    # 3. Look for any .py with entry point patterns
     for py_file in sorted(work_dir.glob("*.py")):
         try:
             content = py_file.read_text(errors="replace")[:4096]
@@ -428,15 +434,29 @@ def find_entry(work_dir: Path) -> tuple[str, str]:
         except Exception:
             continue
 
-    # 3. Fall back to first .py file at root
+    # 4. Look for any .js with entry point patterns
+    for js_file in sorted(work_dir.glob("*.js")):
+        try:
+            content = js_file.read_text(errors="replace")[:4096]
+            if any(kw in content for kw in [
+                'require(', 'import ', 'Telegraf', 'Bot(', 'createBot',
+                'express()', 'app.listen', 'http.createServer',
+            ]):
+                return js_file.name, "js"
+        except Exception:
+            continue
+
+    # 5. Fall back to first .py then .js file at root
     for py_file in sorted(work_dir.glob("*.py")):
         return py_file.name, "py"
+    for js_file in sorted(work_dir.glob("*.js")):
+        return js_file.name, "js"
 
     return "", ""
 
 
-def extract_zip_project(data: bytes, dest: Path) -> str | None:
-    """Safely extract ZIP and detect entry point. Returns error or None."""
+def extract_zip_project(data: bytes, dest: Path) -> tuple[str, str] | None:
+    """Safely extract ZIP and detect entry point. Returns (entry, type) or error string."""
     try:
         safe_extract_zip(data, dest)
     except Exception as e:
@@ -459,13 +479,22 @@ def extract_zip_project(data: bytes, dest: Path) -> str | None:
     entry, etype = find_entry(dest)
     if not entry:
         py_files = [f.name for f in dest.glob("*.py")]
-        if py_files:
-            return f"No entry point found. .py files in ZIP: {', '.join(py_files)}"
-        return "No .py files found in ZIP"
+        js_files = [f.name for f in dest.glob("*.js")]
+        all_files = py_files + js_files
+        if all_files:
+            return f"No entry point found. Files in ZIP: {', '.join(all_files)}"
+        return "No .py or .js files found in ZIP"
 
-    if entry != "bot.py":
+    # Rename entry to standard name (bot.py or bot.js)
+    if etype == "py" and entry != "bot.py":
         src = dest / entry
         dst = dest / "bot.py"
+        if dst.exists():
+            dst.unlink()
+        src.rename(dst)
+    elif etype == "js" and entry != "bot.js":
+        src = dest / entry
+        dst = dest / "bot.js"
         if dst.exists():
             dst.unlink()
         src.rename(dst)

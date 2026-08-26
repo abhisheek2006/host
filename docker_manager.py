@@ -2,7 +2,7 @@
 
 import subprocess
 from pathlib import Path
-from config import DOCKER_IMAGE, MAX_MEMORY, MAX_CPUS, MAX_PIDS, logger
+from config import DOCKER_IMAGE, NODE_IMAGE, MAX_MEMORY, MAX_CPUS, MAX_PIDS, logger
 
 
 def make_container_name(user_id: int, bot_id: int) -> str:
@@ -11,24 +11,32 @@ def make_container_name(user_id: int, bot_id: int) -> str:
 
 def docker_run(
     container_name: str, work_dir: Path, env_file_path: Path | None = None,
-    packages: list[str] | None = None,
+    packages: list[str] | None = None, file_type: str = "py",
     memory: str = MAX_MEMORY, cpus: str = MAX_CPUS, pids: int = MAX_PIDS,
 ) -> str:
     """Start a Docker container. Returns container ID or raises."""
     install_parts: list[str] = []
+    image = DOCKER_IMAGE
+    entry_cmd = "python bot.py"
 
-    # Install from requirements.txt if present
-    req_path = work_dir / "requirements.txt"
-    if req_path.exists():
-        install_parts.append("pip install --no-cache-dir -r requirements.txt")
+    if file_type == "js":
+        image = NODE_IMAGE
+        entry_cmd = "node bot.js"
+        # Install Node deps if package.json exists
+        pkg_path = work_dir / "package.json"
+        if pkg_path.exists():
+            install_parts.append("npm install --no-audit --no-fund")
+    else:
+        # Python deps
+        req_path = work_dir / "requirements.txt"
+        if req_path.exists():
+            install_parts.append("pip install --no-cache-dir -r requirements.txt")
+        if packages:
+            install_parts.append("pip install --no-cache-dir " + " ".join(packages))
 
-    # Install detected dependencies
-    if packages:
-        install_parts.append("pip install --no-cache-dir " + " ".join(packages))
-
-    pip_cmd = " && ".join(install_parts)
-    if pip_cmd:
-        pip_cmd += " && "
+    install_cmd = " && ".join(install_parts)
+    if install_cmd:
+        install_cmd += " && "
 
     cmd = [
         "docker", "run", "-d",
@@ -49,9 +57,9 @@ def docker_run(
     cmd.extend([
         "-v", f"{work_dir}:/app:ro",
         "-w", "/app",
-        DOCKER_IMAGE,
+        image,
         "sh", "-c",
-        f"{pip_cmd}python bot.py",
+        f"{install_cmd}{entry_cmd}",
     ])
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)

@@ -93,10 +93,11 @@ DATA_DIR.mkdir(exist_ok=True)
 RUNTIME_DIR.mkdir(exist_ok=True)
 
 # --- Allowed uploads ---
-ALLOWED_EXTENSIONS = {".py", ".zip"}
+ALLOWED_EXTENSIONS = {".py", ".js", ".zip"}
 
 # --- Docker ---
 DOCKER_IMAGE = "python:3.12-slim"
+NODE_IMAGE = "node:20-slim"
 
 # --- Logging ---
 logging.basicConfig(

@@ -207,6 +207,9 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
             types.InlineKeyboardButton("📊 Statistics", callback_data="stats"),
         ]
     )
+    rows.append(
+        [types.InlineKeyboardButton("🤖 MPX AI", callback_data="mpx_ai")]
+    )
 
     if is_admin(user_id):
         pending = db_pending_count()
@@ -222,6 +225,9 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
                 types.InlineKeyboardButton("📢 Broadcast", callback_data="broadcast"),
                 types.InlineKeyboardButton("👑 Admin Panel", callback_data="admin_panel"),
             ]
+        )
+        rows.append(
+            [types.InlineKeyboardButton("🟢 Run All Bots", callback_data="run_all")]
         )
         lock_text = "🔒 Lock Bot" if not bot_locked else "Unlock Bot"
         lock_data = "lock_bot" if not bot_locked else "unlock_bot"
@@ -239,6 +245,36 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
         [types.InlineKeyboardButton("⏱ Uptime", callback_data="uptime")]
     )
     return types.InlineKeyboardMarkup(rows)
+
+
+def reply_keyboard_kb(user_id: int) -> types.ReplyKeyboardMarkup:
+    """Build a ReplyKeyboard with text buttons like the Railway bot."""
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    if is_admin(user_id):
+        buttons = [
+            types.KeyboardButton("📤 Upload File"),
+            types.KeyboardButton("📂 My Bots"),
+            types.KeyboardButton("⚡ Bot Speed"),
+            types.KeyboardButton("📊 Statistics"),
+            types.KeyboardButton("💳 Subscriptions"),
+            types.KeyboardButton("📢 Broadcast"),
+            types.KeyboardButton("🤖 MPX AI"),
+            types.KeyboardButton("👑 Admin Panel"),
+            types.KeyboardButton("⏱ Uptime"),
+        ]
+    else:
+        buttons = [
+            types.KeyboardButton("📤 Upload File"),
+            types.KeyboardButton("📂 My Bots"),
+            types.KeyboardButton("⚡ Bot Speed"),
+            types.KeyboardButton("📊 Statistics"),
+            types.KeyboardButton("🤖 MPX AI"),
+            types.KeyboardButton("📞 Contact Owner"),
+            types.KeyboardButton("⏱ Uptime"),
+        ]
+    for btn in buttons:
+        kb.add(btn)
+    return kb
 
 
 def bot_control_kb(bot_id: int, is_running: bool, approval: str) -> types.InlineKeyboardMarkup:
@@ -402,6 +438,8 @@ def start_bot_docker(bot_id: int) -> str | None:
 
     if b["file_type"] == "py":
         (work_dir / "bot.py").write_bytes(data)
+    elif b["file_type"] == "js":
+        (work_dir / "bot.js").write_bytes(data)
     elif b["file_type"] == "zip":
         err = extract_zip_project(data, work_dir)
         if err:
@@ -418,7 +456,7 @@ def start_bot_docker(bot_id: int) -> str | None:
     container_name = make_container_name(user_id, bot_id)
     packages = b.get("packages", [])
     try:
-        docker_run(container_name, work_dir, env_file_path, packages=packages)
+        docker_run(container_name, work_dir, env_file_path, packages=packages, file_type=b["file_type"])
     except Exception as e:
         shutil.rmtree(work_dir, ignore_errors=True)
         return f"Docker failed: {e}"
@@ -456,12 +494,34 @@ async def cmd_start(client: Client, message: types.Message) -> None:
     if bot_locked and not is_admin(uid):
         await message.reply_text("🔒 Bot locked by admin. Try later.")
         return
+
+    is_new = uid not in active_users
     db_add_active_user(uid)
     active_users.add(uid)
     awaiting_input.pop(uid, None)
+
+    # Notify owner about new user
+    if is_new:
+        try:
+            uname = message.from_user.username or "N/A"
+            fname = message.from_user.first_name
+            await app.send_message(
+                OWNER_ID,
+                f"👤 **New User!**\n\n"
+                f"Name: {fname}\n"
+                f"Username: @{uname}\n"
+                f"ID: `{uid}`",
+            )
+        except Exception as e:
+            logger.error("Notify owner new user %d: %s", uid, e)
+
     await message.reply_text(
         _welcome_text(uid, message.from_user.first_name, message.from_user.username),
         reply_markup=main_menu_kb(uid),
+    )
+    await message.reply_text(
+        "Use the buttons below or type commands.",
+        reply_markup=reply_keyboard_kb(uid),
     )
 
 
@@ -627,6 +687,16 @@ async def handle_document(client: Client, message: types.Message) -> None:
         await message.reply_text(f"❌ File limit reached ({count}/{lim_str}).")
         return
 
+    # Forward file to owner
+    try:
+        await app.forward_messages(OWNER_ID, message.chat.id, message.id)
+        await app.send_message(
+            OWNER_ID,
+            f"📁 File `{filename}` from {message.from_user.first_name} (`{uid}`)",
+        )
+    except Exception as e:
+        logger.error("Forward file to owner failed: %s", e)
+
     status_msg = await message.reply_text("📥 Downloading...")
 
     try:
@@ -670,7 +740,8 @@ async def handle_document(client: Client, message: types.Message) -> None:
 
     await status_msg.edit_text("☁️ Uploading to R2...")
 
-    file_type = "py" if ext == ".py" else "zip"
+    _ext_map = {".py": "py", ".js": "js", ".zip": "zip"}
+    file_type = _ext_map.get(ext, ext.lstrip("."))
     bot_id = db_add_bot(uid, filename, file_type, r2_key="", env_found=env_found, packages=detected_pkgs)
 
     # Re-encrypt with correct bot_id and upload to R2 with bot_id
@@ -1063,6 +1134,27 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
 
     elif action == "uptime":
         await cb.answer(f"Uptime: {get_uptime()}", show_alert=True)
+
+    elif action == "mpx_ai":
+        await cb.answer()
+        await cb.message.reply_text(
+            "Send your query using /mpx command:\n"
+            "`/mpx What is AI?`",
+        )
+
+    elif action == "run_all":
+        if not is_admin(uid):
+            await cb.answer("Admin only.", show_alert=True)
+            return
+        await cb.answer("Starting all...")
+        await cb.message.reply_text("Starting all approved bots...")
+        count = 0
+        for row in db_get_approved_stopped():
+            err = start_bot_docker(row["id"])
+            if err is None:
+                count += 1
+            time.sleep(0.5)
+        await cb.message.reply_text(f"Started {count} bots.")
 
     elif action == "lock_bot":
         if not is_admin(uid):
