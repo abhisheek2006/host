@@ -628,7 +628,7 @@ async def handle_document(client: Client, message: types.Message) -> None:
     status_msg = await message.reply_text("📥 Downloading...")
 
     try:
-        data = await client.download_media(message, in_memory=True)
+        data = (await client.download_media(message, in_memory=True)).getvalue()
     except Exception as e:
         logger.error("Download failed user=%s: %s", uid, e)
         await status_msg.edit_text("❌ Download failed.")
