@@ -1,0 +1,271 @@
+/* ==========================================================================
+   HostBot Landing Page - Custom Styles
+   Premium dark tech aesthetic. Subtle glassmorphism, restrained motion.
+   ========================================================================== */
+
+/* ---------- Reset & Base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.25);
+  color: #fff;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e1f2a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2b38;
+}
+
+/* ---------- Nav ---------- */
+#navbar {
+  background: transparent;
+}
+
+#navbar.scrolled {
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ---------- Terminal ---------- */
+.terminal-window {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 16, 24, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.04),
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(22, 23, 31, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.terminal-body {
+  padding: 20px;
+  min-height: 240px;
+}
+
+.terminal-line {
+  opacity: 0;
+  transform: translateY(4px);
+  animation: termReveal 0.3s ease forwards;
+  white-space: nowrap;
+}
+
+@keyframes termReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Feature Cards (glassmorphism) ---------- */
+.feature-card {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(22, 23, 31, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: rgba(34, 211, 238, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 40px rgba(34, 211, 238, 0.04);
+}
+
+/* ---------- Step Cards ---------- */
+.step-card {
+  position: relative;
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(22, 23, 31, 0.4);
+  transition: border-color 0.3s ease;
+}
+
+.step-card:hover {
+  border-color: rgba(34, 211, 238, 0.12);
+}
+
+.step-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem;
+  font-weight: 700;
+  color: rgba(34, 211, 238, 0.08);
+  line-height: 1;
+  margin-bottom: 1rem;
+  user-select: none;
+}
+
+/* ---------- Pricing Cards ---------- */
+.pricing-card {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(22, 23, 31, 0.5);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pricing-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pricing-card--featured {
+  border-color: rgba(34, 211, 238, 0.15);
+  box-shadow: 0 0 60px rgba(34, 211, 238, 0.05);
+}
+
+.pricing-card--featured:hover {
+  border-color: rgba(34, 211, 238, 0.25);
+  box-shadow: 0 0 80px rgba(34, 211, 238, 0.08);
+}
+
+/* ---------- Testimonial Cards ---------- */
+.testimonial-card {
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(22, 23, 31, 0.4);
+}
+
+/* ---------- FAQ ---------- */
+.faq-item {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(22, 23, 31, 0.4);
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.faq-item:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.faq-item.open {
+  border-color: rgba(34, 211, 238, 0.1);
+}
+
+.faq-toggle i {
+  transition: transform 0.3s ease;
+}
+
+.faq-item.open .faq-toggle i {
+  transform: rotate(180deg);
+}
+
+.faq-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+
+.faq-item.open .faq-content {
+  max-height: 200px;
+}
+
+/* ---------- Reveal Animation ---------- */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: revealUp 0.6s ease forwards;
+}
+
+@keyframes revealUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Viewport-based reveal (for scroll-triggered elements) */
+.reveal-vt {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal-vt.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Reduced Motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal-up,
+  .reveal-vt {
+    opacity: 1;
+    transform: none;
+  }
+
+  .terminal-line {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Prefers Reduced Transparency ---------- */
+@media (prefers-reduced-transparency: reduce) {
+  .terminal-window,
+  .feature-card,
+  .pricing-card,
+  .faq-item,
+  .testimonial-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #16171f;
+  }
+
+  #navbar.scrolled {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #0a0a0f;
+  }
+}

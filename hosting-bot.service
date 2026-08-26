@@ -1,0 +1,16 @@
+[Unit]
+Description=Telegram Hosting Bot
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/hosting-bot
+ExecStart=/home/ubuntu/hosting-bot/venv/bin/python /home/ubuntu/hosting-bot/bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

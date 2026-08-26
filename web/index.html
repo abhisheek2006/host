@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HostBot - Telegram Bot Hosting Platform</title>
+  <meta name="description" content="Deploy and manage Telegram bots with Docker isolation, Cloudflare R2 storage, and instant scaling. Upload your Python bot file and go live in seconds." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            surface: {
+              0: '#0a0a0f',
+              1: '#0f1018',
+              2: '#16171f',
+              3: '#1e1f2a',
+            },
+            accent: {
+              DEFAULT: '#22d3ee',
+              dim: '#0e7490',
+              glow: 'rgba(34, 211, 238, 0.12)',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-surface-0 text-gray-300 font-display antialiased overflow-x-hidden">
+
+  <!-- NAV -->
+  <nav id="navbar" class="fixed top-0 inset-x-0 z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2.5">
+        <span class="w-8 h-8 rounded-lg bg-accent/15 border border-accent/25 flex items-center justify-center">
+          <i class="ph-bold ph-terminal text-accent text-sm"></i>
+        </span>
+        <span class="text-white font-semibold text-lg tracking-tight">HostBot</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8 text-sm text-gray-400">
+        <a href="#features" class="hover:text-white transition-colors">Features</a>
+        <a href="#how-it-works" class="hover:text-white transition-colors">How It Works</a>
+        <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+        <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="https://t.me/Fferss_bot" target="_blank" rel="noopener" class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent text-sm font-medium hover:bg-accent/20 transition-colors">
+          <i class="ph-bold ph-telegram-logo text-base"></i>
+          Open Bot
+        </a>
+        <button id="mobile-toggle" class="md:hidden p-2 text-gray-400 hover:text-white transition-colors" aria-label="Toggle menu">
+          <i class="ph-bold ph-list text-xl"></i>
+        </button>
+      </div>
+    </div>
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-white/5 bg-surface-1/95 backdrop-blur-xl">
+      <div class="px-4 py-4 flex flex-col gap-3 text-sm text-gray-400">
+        <a href="#features" class="py-2 hover:text-white transition-colors">Features</a>
+        <a href="#how-it-works" class="py-2 hover:text-white transition-colors">How It Works</a>
+        <a href="#pricing" class="py-2 hover:text-white transition-colors">Pricing</a>
+        <a href="#faq" class="py-2 hover:text-white transition-colors">FAQ</a>
+        <a href="https://t.me/Fferss_bot" target="_blank" rel="noopener" class="inline-flex items-center gap-2 py-2 text-accent">
+          <i class="ph-bold ph-telegram-logo"></i>
+          Open Bot
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative min-h-[100dvh] flex items-center pt-20 pb-16 overflow-hidden">
+    <!-- Background glow -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-accent/5 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <!-- Left: copy -->
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/8 border border-accent/15 text-accent text-xs font-mono tracking-wide mb-6 reveal-up">
+          <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
+          HOSTING BOT
+        </div>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.08] tracking-tight mb-6 reveal-up" style="animation-delay: 0.08s">
+          Deploy Telegram bots<br />
+          <span class="text-accent">in seconds</span>
+        </h1>
+        <p class="text-gray-400 text-lg max-w-md leading-relaxed mb-8 reveal-up" style="animation-delay: 0.16s">
+          Upload your Python bot file. We handle Docker isolation, Cloudflare R2 storage, and 24/7 uptime. No server setup required.
+        </p>
+        <div class="flex flex-wrap items-center gap-3 reveal-up" style="animation-delay: 0.24s">
+          <a href="https://t.me/Fferss_bot" target="_blank" rel="noopener" class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-accent text-surface-0 font-semibold text-sm hover:bg-cyan-300 transition-all hover:shadow-[0_0_30px_rgba(34,211,238,0.25)] active:scale-[0.97]">
+            <i class="ph-bold ph-telegram-logo text-lg"></i>
+            Start Free
+          </a>
+          <a href="#how-it-works" class="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-white/10 text-gray-300 text-sm hover:bg-white/5 hover:border-white/20 transition-all active:scale-[0.97]">
+            See how it works
+            <i class="ph-bold ph-arrow-down text-sm"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Right: terminal -->
+      <div class="reveal-up" style="animation-delay: 0.3s">
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <div class="flex gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+              <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+              <span class="w-3 h-3 rounded-full bg-green-500/80"></span>
+            </div>
+            <span class="text-gray-500 text-xs font-mono">deploy.sh</span>
+          </div>
+          <div class="terminal-body font-mono text-sm leading-relaxed">
+            <div class="terminal-line" data-delay="400">
+              <span class="text-accent">$</span> <span class="text-gray-300">upload bot.py</span>
+            </div>
+            <div class="terminal-line" data-delay="1200">
+              <span class="text-gray-500">Uploading to R2...</span>
+            </div>
+            <div class="terminal-line" data-delay="2000">
+              <span class="text-green-400">Uploaded bot.py (2.4 KB)</span>
+            </div>
+            <div class="terminal-line" data-delay="2800">
+              <span class="text-accent">$</span> <span class="text-gray-300">deploy --container</span>
+            </div>
+            <div class="terminal-line" data-delay="3600">
+              <span class="text-gray-500">Building Docker image...</span>
+            </div>
+            <div class="terminal-line" data-delay="4400">
+              <span class="text-gray-500">Applying security constraints...</span>
+            </div>
+            <div class="terminal-line" data-delay="5200">
+              <span class="text-green-400">Container running. Status: <span class="text-white font-semibold">LIVE</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST BAR -->
+  <section class="py-12 border-y border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-gray-500 text-sm">
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-shield-check text-accent/70 text-lg"></i>
+          <span>Docker Isolation</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-cloud text-accent/70 text-lg"></i>
+          <span>Cloudflare R2</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-database text-accent/70 text-lg"></i>
+          <span>MongoDB Atlas</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-brackets-angle text-accent/70 text-lg"></i>
+          <span>Pyrogram</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES (bento) -->
+  <section id="features" class="py-24 sm:py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4 reveal-up">Built for bot developers</h2>
+        <p class="text-gray-400 text-lg max-w-xl mx-auto reveal-up" style="animation-delay: 0.08s">
+          Everything you need to run Python bots at scale, without managing servers.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto">
+        <!-- Large feature -->
+        <div class="md:col-span-2 md:row-span-2 feature-card group reveal-up">
+          <div class="h-full flex flex-col justify-between p-6 sm:p-8">
+            <div>
+              <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-5">
+                <i class="ph-bold ph-container text-accent text-xl"></i>
+              </div>
+              <h3 class="text-xl font-semibold text-white mb-3">Docker-isolated execution</h3>
+              <p class="text-gray-400 text-sm leading-relaxed max-w-sm">
+                Every bot runs in its own container with strict resource limits. Memory caps, CPU constraints, PID limits, and read-only filesystems keep your host safe.
+              </p>
+            </div>
+            <div class="mt-8 font-mono text-xs text-gray-500 bg-surface-0/60 rounded-lg p-4 border border-white/5">
+              <div><span class="text-accent">--cap-drop</span> ALL</div>
+              <div><span class="text-accent">--read-only</span> /tmp</div>
+              <div><span class="text-accent">--memory</span> 512m</div>
+              <div><span class="text-accent">--cpus</span> 1.0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Medium features -->
+        <div class="feature-card group reveal-up" style="animation-delay: 0.06s">
+          <div class="p-6">
+            <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-5">
+              <i class="ph-bold ph-file-code text-accent text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">Upload and deploy</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+              Send your .py file to the bot. No git repos, no CI pipelines, no config files.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-card group reveal-up" style="animation-delay: 0.12s">
+          <div class="p-6">
+            <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-5">
+              <i class="ph-bold ph-hard-drives text-accent text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">R2 cloud storage</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+              Your bot files live on Cloudflare R2. Zero egress fees, global edge delivery, private buckets only.
+            </p>
+          </div>
+        </div>
+
+        <!-- Medium feature -->
+        <div class="md:col-span-1 feature-card group reveal-up" style="animation-delay: 0.18s">
+          <div class="p-6">
+            <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-5">
+              <i class="ph-bold ph-chart-line-up text-accent text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">Live container logs</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">
+              Tail logs, restart, or stop your bot from Telegram. Real-time container monitoring without leaving the chat.
+            </p>
+          </div>
+        </div>
+
+        <div class="md:col-span-2 feature-card group reveal-up" style="animation-delay: 0.08s">
+          <div class="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 items-start">
+            <div class="shrink-0">
+              <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-0 sm:mb-5">
+                <i class="ph-bold ph-users-three text-accent text-xl"></i>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-white mb-2">Admin approval workflow</h3>
+              <p class="text-gray-400 text-sm leading-relaxed max-w-md">
+                Admins review every bot before deployment. Approve, reject, or manage subscriptions with inline Telegram controls. Built-in broadcast to all active users.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="py-24 sm:py-32 bg-surface-1">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <p class="text-accent text-xs font-mono tracking-widest uppercase mb-3 reveal-up">How it works</p>
+        <h2 class="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4 reveal-up" style="animation-delay: 0.06s">Three steps to live</h2>
+        <p class="text-gray-400 text-lg max-w-lg mx-auto reveal-up" style="animation-delay: 0.12s">
+          No infrastructure knowledge needed. The bot handles everything.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="step-card reveal-up" style="animation-delay: 0.1s">
+          <div class="step-number">01</div>
+          <h3 class="text-lg font-semibold text-white mb-2">Upload your file</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Send your Python bot file to HostBot on Telegram. We accept .py files up to 100 MB.
+          </p>
+        </div>
+
+        <div class="step-card reveal-up" style="animation-delay: 0.2s">
+          <div class="step-number">02</div>
+          <h3 class="text-lg font-semibold text-white mb-2">Admin reviews</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            An admin approves your bot. Once approved, your file gets stored on R2 and queued for deployment.
+          </p>
+        </div>
+
+        <div class="step-card reveal-up" style="animation-delay: 0.3s">
+          <div class="step-number">03</div>
+          <h3 class="text-lg font-semibold text-white mb-2">Bot goes live</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            A Docker container spins up with your bot. Monitor logs, restart, or stop anytime from the Telegram interface.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" class="py-24 sm:py-32">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <p class="text-accent text-xs font-mono tracking-widest uppercase mb-3 reveal-up">Pricing</p>
+        <h2 class="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4 reveal-up" style="animation-delay: 0.06s">Simple, honest plans</h2>
+        <p class="text-gray-400 text-lg max-w-lg mx-auto reveal-up" style="animation-delay: 0.12s">
+          Start free, upgrade when you need more capacity.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <!-- Free -->
+        <div class="pricing-card reveal-up" style="animation-delay: 0.1s">
+          <div class="p-6 sm:p-8">
+            <p class="text-gray-500 text-sm font-mono mb-1">FREE</p>
+            <div class="flex items-baseline gap-1 mb-6">
+              <span class="text-4xl font-bold text-white">$0</span>
+              <span class="text-gray-500 text-sm">/forever</span>
+            </div>
+            <ul class="space-y-3 text-sm text-gray-400 mb-8">
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>Up to 2 bots</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>512 MB memory per container</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>1 vCPU per container</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>Docker isolation</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>Cloudflare R2 storage</span>
+              </li>
+            </ul>
+            <a href="https://t.me/Fferss_bot" target="_blank" rel="noopener" class="block text-center py-3 rounded-full border border-white/10 text-gray-300 text-sm font-medium hover:bg-white/5 hover:border-white/20 transition-all active:scale-[0.97]">
+              Get started
+            </a>
+          </div>
+        </div>
+
+        <!-- Pro -->
+        <div class="pricing-card pricing-card--featured reveal-up" style="animation-delay: 0.18s">
+          <div class="p-6 sm:p-8">
+            <p class="text-accent text-sm font-mono mb-1">PRO</p>
+            <div class="flex items-baseline gap-1 mb-6">
+              <span class="text-4xl font-bold text-white">$5</span>
+              <span class="text-gray-500 text-sm">/month</span>
+            </div>
+            <ul class="space-y-3 text-sm text-gray-400 mb-8">
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>Up to 15 bots</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>1 GB memory per container</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>2 vCPUs per container</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>Priority queue</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <i class="ph-bold ph-check text-accent text-base mt-0.5 shrink-0"></i>
+                <span>Instant deployment</span>
+              </li>
+            </ul>
+            <a href="https://t.me/Fferss_bot" target="_blank" rel="noopener" class="block text-center py-3 rounded-full bg-accent text-surface-0 text-sm font-semibold hover:bg-cyan-300 transition-all hover:shadow-[0_0_30px_rgba(34,211,238,0.25)] active:scale-[0.97]">
+              Upgrade to Pro
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="py-24 sm:py-32 bg-surface-1">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4 reveal-up">What developers say</h2>
+        <p class="text-gray-400 text-lg max-w-lg mx-auto reveal-up" style="animation-delay: 0.06s">
+          Real feedback from bot developers using HostBot.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="testimonial-card reveal-up" style="animation-delay: 0.1s">
+          <p class="text-gray-300 text-sm leading-relaxed mb-6">
+            "I had a Telegram bot running on my laptop. HostBot got it live in under two minutes. No server setup, no Docker knowledge needed."
+          </p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-accent/15 flex items-center justify-center text-accent text-sm font-semibold">R</div>
+            <div>
+              <p class="text-white text-sm font-medium">Rohan K.</p>
+              <p class="text-gray-500 text-xs">Bot developer</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card reveal-up" style="animation-delay: 0.18s">
+          <p class="text-gray-300 text-sm leading-relaxed mb-6">
+            "The Docker isolation is what sold me. I don't have to worry about my bot crashing and taking down other bots on the same server."
+          </p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-accent/15 flex items-center justify-center text-accent text-sm font-semibold">A</div>
+            <div>
+              <p class="text-white text-sm font-medium">Anika M.</p>
+              <p class="text-gray-500 text-xs">Community manager</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card reveal-up" style="animation-delay: 0.26s">
+          <p class="text-gray-300 text-sm leading-relaxed mb-6">
+            "Running five bots on the free tier. The admin approval flow is smooth, and the container logs make debugging trivial."
+          </p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-accent/15 flex items-center justify-center text-accent text-sm font-semibold">D</div>
+            <div>
+              <p class="text-white text-sm font-medium">Dev P.</p>
+              <p class="text-gray-500 text-xs">Indie developer</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="py-24 sm:py-32">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4 reveal-up">Frequently asked questions</h2>
+        <p class="text-gray-400 text-lg max-w-lg mx-auto reveal-up" style="animation-delay: 0.06s">
+          Everything you need to know before deploying.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+        <div class="faq-item reveal-up" style="animation-delay: 0.1s">
+          <button class="faq-toggle w-full flex items-center justify-between py-5 text-left" aria-expanded="false">
+            <span class="text-white text-sm font-medium pr-4">What programming languages are supported?</span>
+            <i class="ph-bold ph-caret-down text-gray-500 text-lg shrink-0 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content">
+            <p class="text-gray-400 text-sm leading-relaxed pb-5">
+              Currently we support Python bots using the Pyrogram framework. We plan to add support for more languages and frameworks in the future.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item reveal-up" style="animation-delay: 0.15s">
+          <button class="faq-toggle w-full flex items-center justify-between py-5 text-left" aria-expanded="false">
+            <span class="text-white text-sm font-medium pr-4">How does Docker isolation work?</span>
+            <i class="ph-bold ph-caret-down text-gray-500 text-lg shrink-0 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content">
+            <p class="text-gray-400 text-sm leading-relaxed pb-5">
+              Each bot runs in its own Docker container with dropped capabilities, a read-only filesystem, memory and CPU limits, and PID constraints. One bot cannot affect another.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item reveal-up" style="animation-delay: 0.2s">
+          <button class="faq-toggle w-full flex items-center justify-between py-5 text-left" aria-expanded="false">
+            <span class="text-white text-sm font-medium pr-4">Is my bot file stored securely?</span>
+            <i class="ph-bold ph-caret-down text-gray-500 text-lg shrink-0 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content">
+            <p class="text-gray-400 text-sm leading-relaxed pb-5">
+              Yes. Bot files are stored in a private Cloudflare R2 bucket with zero egress fees. Only your bot's container can access the file at runtime.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item reveal-up" style="animation-delay: 0.25s">
+          <button class="faq-toggle w-full flex items-center justify-between py-5 text-left" aria-expanded="false">
+            <span class="text-white text-sm font-medium pr-4">Can I monitor my bot's performance?</span>
+            <i class="ph-bold ph-caret-down text-gray-500 text-lg shrink-0 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content">
+            <p class="text-gray-400 text-sm leading-relaxed pb-5">
+              Yes. You can view live container logs, restart, or stop your bot directly from Telegram. The admin dashboard provides additional monitoring for all hosted bots.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item reveal-up" style="animation-delay: 0.3s">
+          <button class="faq-toggle w-full flex items-center justify-between py-5 text-left" aria-expanded="false">
+            <span class="text-white text-sm font-medium pr-4">How do I upgrade to Pro?</span>
+            <i class="ph-bold ph-caret-down text-gray-500 text-lg shrink-0 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content">
+            <p class="text-gray-400 text-sm leading-relaxed pb-5">
+              Send a subscription request through the HostBot Telegram interface. An admin will review and activate your Pro plan. Payment is handled via Telegram.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-24 sm:py-32 bg-surface-1">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="max-w-xl mx-auto">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4 reveal-up">Ready to deploy?</h2>
+        <p class="text-gray-400 text-lg mb-8 reveal-up" style="animation-delay: 0.08s">
+          Your bot could be live in the next two minutes. Free to start, no credit card required.
+        </p>
+        <div class="reveal-up" style="animation-delay: 0.16s">
+          <a href="https://t.me/Fferss_bot" target="_blank" rel="noopener" class="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-accent text-surface-0 font-semibold text-sm hover:bg-cyan-300 transition-all hover:shadow-[0_0_30px_rgba(34,211,238,0.25)] active:scale-[0.97]">
+            <i class="ph-bold ph-telegram-logo text-lg"></i>
+            Open HostBot on Telegram
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="py-12 border-t border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2.5">
+          <span class="w-7 h-7 rounded-lg bg-accent/15 border border-accent/25 flex items-center justify-center">
+            <i class="ph-bold ph-terminal text-accent text-xs"></i>
+          </span>
+          <span class="text-white font-semibold text-sm">HostBot</span>
+        </div>
+        <div class="flex items-center gap-6 text-sm text-gray-500">
+          <a href="https://t.me/Fferss_bot" target="_blank" rel="noopener" class="hover:text-white transition-colors">Telegram Bot</a>
+          <a href="#features" class="hover:text-white transition-colors">Features</a>
+          <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+        </div>
+        <p class="text-gray-600 text-xs">Built with Pyrogram + Docker + R2</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
