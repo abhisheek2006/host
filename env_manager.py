@@ -164,11 +164,32 @@ def delete_env_file(dest: Path) -> None:
 
 # --- ZIP Extraction with Entry Detection ---
 
+_ENTRY_NAMES = ["bot.py", "main.py", "app.py", "run.py", "start.py", "index.py", "handler.py", "web.py"]
+
+
 def find_entry(work_dir: Path) -> tuple[str, str]:
     """Find the main bot file in extracted directory."""
-    for name in ["bot.py", "main.py", "app.py"]:
+    # 1. Check common entry point names
+    for name in _ENTRY_NAMES:
         if (work_dir / name).exists():
             return name, "py"
+
+    # 2. Look for any .py with entry point patterns
+    for py_file in sorted(work_dir.glob("*.py")):
+        try:
+            content = py_file.read_text(errors="replace")[:4096]
+            if any(kw in content for kw in [
+                'if __name__', 'Client(', 'app.run', 'bot.run',
+                'create_app', 'application =', 'dp =',
+            ]):
+                return py_file.name, "py"
+        except Exception:
+            continue
+
+    # 3. Fall back to first .py file at root
+    for py_file in sorted(work_dir.glob("*.py")):
+        return py_file.name, "py"
+
     return "", ""
 
 
@@ -179,9 +200,26 @@ def extract_zip_project(data: bytes, dest: Path) -> str | None:
     except Exception as e:
         return f"ZIP error: {e}"
 
+    # Flatten: if all files are inside a single subfolder, move them up
+    entries = [e for e in dest.iterdir() if not e.name.startswith(".") and e.name != "__MACOSX"]
+    if len(entries) == 1 and entries[0].is_dir():
+        sub = entries[0]
+        for item in sub.iterdir():
+            item.rename(dest / item.name)
+        sub.rmdir()
+
+    # Clean __MACOSX junk
+    macosx = dest / "__MACOSX"
+    if macosx.exists():
+        import shutil
+        shutil.rmtree(macosx, ignore_errors=True)
+
     entry, etype = find_entry(dest)
     if not entry:
-        return "No bot.py/main.py found in ZIP"
+        py_files = [f.name for f in dest.glob("*.py")]
+        if py_files:
+            return f"No entry point found. .py files in ZIP: {', '.join(py_files)}"
+        return "No .py files found in ZIP"
 
     if entry != "bot.py":
         src = dest / entry
