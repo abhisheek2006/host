@@ -48,7 +48,6 @@ def docker_run(
         "--pids-limit", str(pids),
         "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges",
-        "--read-only",
         "--tmpfs", "/tmp:size=100m",
         "--network", "bridge",
     ]
