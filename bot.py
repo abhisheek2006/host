@@ -962,6 +962,7 @@ async def cb_router(client: Client, cb: types.CallbackQuery) -> None:
 
 @app.on_callback_query(filters.regex(r"^(upload|check_files|speed|stats|back_main|uptime|lock_bot|unlock_bot|subscription|broadcast|admin_panel|view_pending|run_all)$"))
 async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
+    global bot_locked
     uid = cb.from_user.id
     action = cb.data
 
@@ -1047,7 +1048,6 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
         if not is_admin(uid):
             await cb.answer("Admin only.", show_alert=True)
             return
-        global bot_locked
         bot_locked = True
         logger.warning("Bot locked by %d", uid)
         await cb.answer("Locked")

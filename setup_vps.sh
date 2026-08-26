@@ -6,6 +6,9 @@ echo "=== Telegram Bot Hosting Platform - VPS Setup ==="
 # Update system
 sudo apt update && sudo apt upgrade -y
 
+# Install build essentials (needed for tgcrypto and other C extensions)
+sudo apt install -y build-essential python3.14-dev
+
 # Install Docker
 if ! command -v docker &> /dev/null; then
     echo "Installing Docker..."
