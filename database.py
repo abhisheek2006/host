@@ -63,12 +63,13 @@ def _next_id(collection_name: str) -> int:
 def _normalize_bot(row: dict) -> dict:
     if row:
         row["id"] = row["_id"]
+        row.setdefault("packages", [])
     return row
 
 
 # --- Bots ---
 
-def db_add_bot(user_id: int, filename: str, file_type: str, r2_key: str, env_found: bool = False) -> int:
+def db_add_bot(user_id: int, filename: str, file_type: str, r2_key: str, env_found: bool = False, packages: list[str] | None = None) -> int:
     bot_id = _next_id("bot_id")
     bots_col.insert_one({
         "_id": bot_id,
@@ -81,6 +82,7 @@ def db_add_bot(user_id: int, filename: str, file_type: str, r2_key: str, env_fou
         "container_name": None,
         "runtime_path": None,
         "env_file_found": env_found,
+        "packages": packages or [],
         "created_at": datetime.utcnow().isoformat(),
         "updated_at": datetime.utcnow().isoformat(),
     })

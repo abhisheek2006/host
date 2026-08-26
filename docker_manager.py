@@ -11,13 +11,24 @@ def make_container_name(user_id: int, bot_id: int) -> str:
 
 def docker_run(
     container_name: str, work_dir: Path, env_file_path: Path | None = None,
+    packages: list[str] | None = None,
     memory: str = MAX_MEMORY, cpus: str = MAX_CPUS, pids: int = MAX_PIDS,
 ) -> str:
     """Start a Docker container. Returns container ID or raises."""
+    install_parts: list[str] = []
+
+    # Install from requirements.txt if present
     req_path = work_dir / "requirements.txt"
-    pip_cmd = ""
     if req_path.exists():
-        pip_cmd = "pip install --no-cache-dir -r requirements.txt && "
+        install_parts.append("pip install --no-cache-dir -r requirements.txt")
+
+    # Install detected dependencies
+    if packages:
+        install_parts.append("pip install --no-cache-dir " + " ".join(packages))
+
+    pip_cmd = " && ".join(install_parts)
+    if pip_cmd:
+        pip_cmd += " && "
 
     cmd = [
         "docker", "run", "-d",

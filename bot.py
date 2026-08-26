@@ -51,6 +51,7 @@ from env_manager import (
     inspect_zip_safety, safe_extract_zip, find_env_files, pick_primary_env,
     parse_env_file, encrypt_env_vars, decrypt_env_vars, get_env_keys,
     write_env_file, delete_env_file, find_entry, extract_zip_project,
+    detect_dependencies, detect_dependencies_from_zip,
 )
 from docker_manager import (
     make_container_name, docker_run, docker_stop, docker_exists, docker_logs,
@@ -415,8 +416,9 @@ def start_bot_docker(bot_id: int) -> str | None:
         env_file_path = None
 
     container_name = make_container_name(user_id, bot_id)
+    packages = b.get("packages", [])
     try:
-        docker_run(container_name, work_dir, env_file_path)
+        docker_run(container_name, work_dir, env_file_path, packages=packages)
     except Exception as e:
         shutil.rmtree(work_dir, ignore_errors=True)
         return f"Docker failed: {e}"
@@ -639,6 +641,12 @@ async def handle_document(client: Client, message: types.Message) -> None:
     env_count = 0
     env_keys_list: list[str] = []
 
+    # Detect dependencies from code
+    if ext == ".py":
+        detected_pkgs = detect_dependencies(data)
+    else:
+        detected_pkgs = detect_dependencies_from_zip(data)
+
     if ext == ".zip":
         safe, err = inspect_zip_safety(data)
         if not safe:
@@ -663,7 +671,7 @@ async def handle_document(client: Client, message: types.Message) -> None:
     await status_msg.edit_text("☁️ Uploading to R2...")
 
     file_type = "py" if ext == ".py" else "zip"
-    bot_id = db_add_bot(uid, filename, file_type, r2_key="", env_found=env_found)
+    bot_id = db_add_bot(uid, filename, file_type, r2_key="", env_found=env_found, packages=detected_pkgs)
 
     # Re-encrypt with correct bot_id and upload to R2 with bot_id
     try:
@@ -696,12 +704,14 @@ async def handle_document(client: Client, message: types.Message) -> None:
     logger.info("Uploaded user=%s bot=%d file=%s", uid, bot_id, filename)
 
     env_text = f"🔐 Environment file detected\n🔑 Variables found: {env_count}" if env_found else "🔐 Environment file: Not found"
+    pkgs_text = f"📦 Auto-install: {', '.join(detected_pkgs)}" if detected_pkgs else "📦 Auto-install: none detected"
     text = (
         f"✅ **Uploaded!**\n\n"
         f"📦 Project: `{filename}`\n"
         f"🆔 Bot ID: `{bot_id}`\n"
         f"☁️ Stored in Cloudflare R2\n\n"
-        f"{env_text}\n\n"
+        f"{env_text}\n"
+        f"{pkgs_text}\n\n"
         f"📝 Approval: ⏳ **Pending**\n\n"
         f"Admins have been notified."
     )

@@ -1,5 +1,6 @@
-"""Environment variable manager - ZIP inspection, .env parsing, encryption."""
+"""Environment variable manager - ZIP inspection, .env parsing, encryption, dependency detection."""
 
+import ast
 import io
 import os
 import re
@@ -9,6 +10,247 @@ from pathlib import Path
 from security import encrypt_value, decrypt_value
 from database import db_save_env, db_get_envs, db_delete_all_envs
 from config import logger
+
+
+# --- Module -> pip package mapping ---
+
+TELEGRAM_MODULES = {
+    'telebot': 'pyTelegramBotAPI',
+    'telegram': 'python-telegram-bot',
+    'python_telegram_bot': 'python-telegram-bot',
+    'aiogram': 'aiogram',
+    'pyrogram': 'pyrogram',
+    'telethon': 'telethon',
+    'telethon.sync': 'telethon',
+    'from telethon.sync import telegramclient': 'telethon',
+    'telepot': 'telepot',
+    'pytg': 'pytg',
+    'tgcrypto': 'tgcrypto',
+    'telegram_upload': 'telegram-upload',
+    'telegram_send': 'telegram-send',
+    'telegram_text': 'telegram-text',
+    'tl': 'telethon',
+    'telegram_utils': 'telegram-utils',
+    'telegram_logger': 'telegram-logger',
+    'telegram_handlers': 'python-telegram-handlers',
+    'telegram_redis': 'telegram-redis',
+    'telegram_sqlalchemy': 'telegram-sqlalchemy',
+    'telegram_payment': 'telegram-payment',
+    'telegram_shop': 'telegram-shop-sdk',
+    'pytest_telegram': 'pytest-telegram',
+    'telegram_debug': 'telegram-debug',
+    'telegram_scraper': 'telegram-scraper',
+    'telegram_analytics': 'telegram-analytics',
+    'telegram_nlp': 'telegram-nlp-toolkit',
+    'telegram_ai': 'telegram-ai',
+    'telegram_api': 'telegram-api-client',
+    'telegram_web': 'telegram-web-integration',
+    'telegram_games': 'telegram-games',
+    'telegram_quiz': 'telegram-quiz-bot',
+    'telegram_ffmpeg': 'telegram-ffmpeg',
+    'telegram_media': 'telegram-media-utils',
+    'telegram_2fa': 'telegram-twofa',
+    'telegram_crypto': 'telegram-crypto-bot',
+    'telegram_i18n': 'telegram-i18n',
+    'telegram_translate': 'telegram-translate',
+    'bs4': 'beautifulsoup4',
+    'requests': 'requests',
+    'pillow': 'Pillow',
+    'cv2': 'opencv-python',
+    'yaml': 'PyYAML',
+    'dotenv': 'python-dotenv',
+    'dateutil': 'python-dateutil',
+    'pandas': 'pandas',
+    'numpy': 'numpy',
+    'flask': 'Flask',
+    'django': 'Django',
+    'sqlalchemy': 'SQLAlchemy',
+    'psutil': 'psutil',
+    'aiohttp': 'aiohttp',
+    'httpx': 'httpx',
+    'selenium': 'selenium',
+    'moviepy': 'moviepy',
+    'pydub': 'pydub',
+    'gtts': 'gTTS',
+    'pyttsx3': 'pyttsx3',
+    'speech_recognition': 'SpeechRecognition',
+    'openai': 'openai',
+    'replicate': 'replicate',
+    'huggingface_hub': 'huggingface-hub',
+    'torch': 'torch',
+    'tensorflow': 'tensorflow',
+    'sklearn': 'scikit-learn',
+    'scipy': 'scipy',
+    'matplotlib': 'matplotlib',
+    'seaborn': 'seaborn',
+    'plotly': 'plotly',
+    'bokeh': 'bokeh',
+    'fastapi': 'fastapi',
+    'uvicorn': 'uvicorn',
+    'starlette': 'starlette',
+    'aiofiles': 'aiofiles',
+    'motor': 'motor',
+    'redis': 'redis',
+    'celery': 'celery',
+    'pytz': 'pytz',
+    'dateparser': 'dateparser',
+    'validators': 'validators',
+    'pyshorteners': 'pyshorteners',
+    'qrcode': 'qrcode',
+    'pillow': 'Pillow',
+    'pygments': 'Pygments',
+    'rich': 'rich',
+    'click': 'click',
+    'typer': 'typer',
+    'pydantic': 'pydantic',
+    'httpx': 'httpx',
+    'fake_useragent': 'fake-useragent',
+    'user_agent': 'user-agent',
+    'smtplib': None,
+    'email': None,
+    'ftplib': None,
+    'hashlib': None,
+    'base64': None,
+    'urllib': None,
+    'html': None,
+    'http': None,
+    'socket': None,
+    'struct': None,
+    'binascii': None,
+    'uuid': None,
+    'csv': None,
+    'xml': None,
+    'pickle': None,
+    'copy': None,
+    'collections': None,
+    'functools': None,
+    'itertools': None,
+    'string': None,
+    'textwrap': None,
+    'difflib': None,
+    'enum': None,
+    'dataclasses': None,
+    'typing': None,
+    'abc': None,
+    'contextlib': None,
+    'io': None,
+    'glob': None,
+    'fnmatch': None,
+    'pathlib': None,
+    'argparse': None,
+    'configparser': None,
+    'logging': None,
+    'warnings': None,
+    'traceback': None,
+    'inspect': None,
+    'importlib': None,
+    'asyncio': None,
+    'json': None,
+    'datetime': None,
+    'os': None,
+    'sys': None,
+    're': None,
+    'time': None,
+    'math': None,
+    'random': None,
+    'threading': None,
+    'subprocess': None,
+    'zipfile': None,
+    'tempfile': None,
+    'shutil': None,
+    'sqlite3': None,
+    'atexit': None,
+    'signal': None,
+    'multiprocessing': None,
+    'concurrent': None,
+    'unittest': None,
+    'pdb': None,
+    'code': None,
+    'codeop': None,
+    'tokenize': None,
+    'keyword': None,
+    'ast': None,
+    'dis': None,
+    'timeit': None,
+    'platform': None,
+    'ctypes': None,
+    'array': None,
+    'queue': None,
+    'heapq': None,
+    'bisect': None,
+    'decimal': None,
+    'fractions': None,
+    'statistics': None,
+    'secrets': None,
+    'hmac': None,
+    'ssl': None,
+    'imaplib': None,
+    'poplib': None,
+    'smtplib': None,
+    'email.mime': None,
+    'email.mime.text': None,
+    'email.mime.multipart': None,
+    'email.mime.base': None,
+}
+
+
+# --- Dependency Detection ---
+
+def detect_dependencies(code: str | bytes) -> list[str]:
+    """Scan Python code for imports, return list of pip packages to install."""
+    if isinstance(code, bytes):
+        code = code.decode("utf-8", errors="replace")
+
+    imports: set[str] = set()
+
+    # AST-based detection (handles import X, from X import Y)
+    try:
+        tree = ast.parse(code)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imports.add(alias.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    imports.add(node.module.split(".")[0])
+    except SyntaxError:
+        pass
+
+    # Regex fallback for edge cases
+    for match in re.finditer(r'^\s*(?:import|from)\s+([\w.]+)', code, re.MULTILINE):
+        mod = match.group(1).split(".")[0]
+        imports.add(mod)
+
+    # Map to pip packages
+    packages: set[str] = set()
+    for mod in imports:
+        pkg = TELEGRAM_MODULES.get(mod)
+        if pkg:
+            packages.add(pkg)
+
+    # Always include pyrogram + tgcrypto for Telegram bots
+    packages.add("pyrogram")
+    packages.add("tgcrypto")
+
+    return sorted(packages)
+
+
+def detect_dependencies_from_zip(data: bytes) -> list[str]:
+    """Scan all .py files inside a ZIP for imports."""
+    combined = []
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            for name in zf.namelist():
+                if name.endswith(".py") and not name.startswith("__"):
+                    try:
+                        combined.append(zf.read(name).decode("utf-8", errors="replace"))
+                    except Exception:
+                        continue
+    except Exception:
+        return ["pyrogram", "tgcrypto"]
+
+    full_code = "\n".join(combined)
+    return detect_dependencies(full_code)
 
 
 # --- ZIP Safety ---
