@@ -42,9 +42,10 @@ from database import (
     db_save_subscription, db_remove_subscription, db_load_subscriptions,
     db_add_active_user, db_load_active_users, db_add_admin, db_remove_admin,
     db_load_admins, db_pending_count, db_get_pending_bots, db_get_approved_stopped,
-    db_count_approved, bots_col,
+    db_count_approved,
 )
 from r2_storage import r2_upload, r2_download, r2_delete
+import database
 from security import encrypt_value, decrypt_value, generate_key
 from env_manager import (
     inspect_zip_safety, safe_extract_zip, find_env_files, pick_primary_env,
@@ -359,10 +360,13 @@ def _bot_summary(b: dict) -> str:
 
 
 def cleanup_stale_bots() -> None:
-    for row in bots_col.find({"status": "running"}, {"_id": 1, "container_name": 1}):
+    import database
+    if database.bots_col is None:
+        return
+    for row in database.bots_col.find({"status": "running"}, {"_id": 1, "container_name": 1}):
         cn = row.get("container_name")
         if cn and not docker_exists(cn):
-            bots_col.update_one({"_id": row["_id"]}, {"$set": {"status": "stopped", "container_name": None, "runtime_path": None}})
+            database.bots_col.update_one({"_id": row["_id"]}, {"$set": {"status": "stopped", "container_name": None, "runtime_path": None}})
             d = RUNTIME_DIR / str(row["_id"])
             if d.exists():
                 shutil.rmtree(d, ignore_errors=True)
@@ -1241,7 +1245,7 @@ async def _cb_approval(client: Client, cb: types.CallbackQuery, uid: int, parts:
     filename = parts[2]
 
     approval = "approved" if action == "approve" else "rejected"
-    row = bots_col.find_one(
+    row = database.bots_col.find_one(
         {"user_id": target_user, "filename": filename, "approval": "pending"},
         {"_id": 1},
     )
