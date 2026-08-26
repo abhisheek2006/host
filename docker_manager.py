@@ -43,10 +43,10 @@ def docker_run(
     cmd = [
         "docker", "run", "-d",
         "--name", container_name,
+        "--user", "root",
         "--memory", memory,
         "--cpus", cpus,
         "--pids-limit", str(pids),
-        "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges",
         "--tmpfs", "/tmp:size=100m",
         "--network", "bridge",
