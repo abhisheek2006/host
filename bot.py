@@ -811,7 +811,6 @@ async def cmd_start(client: Client, message: types.Message) -> None:
             logger.error("Notify owner new user %d: %s", uid, e)
 
     welcome = _welcome_text(uid, message.from_user.first_name, message.from_user.username)
-    welcome += f"\n📝 **Bio:** {bio}"
 
     if photo:
         try:
