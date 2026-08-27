@@ -337,12 +337,20 @@ def _unquote(value: str) -> str:
 
 
 def parse_env_file(content: str) -> dict[str, str]:
-    """Parse .env content into key-value dict. Safe, no exec/eval."""
+    """Parse .env content into key-value dict. Safe, no exec/eval.
+
+    Supports `export KEY=VALUE`, quoted values, and CRLF line endings.
+    """
     result = {}
     for line in content.splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
+        # Optional `export ` prefix (common in shell-style .env files)
+        if line.startswith("export "):
+            line = line[len("export "):].lstrip()
+            if not line or line.startswith("#"):
+                continue
         m = _ENV_LINE_RE.match(line)
         if m:
             key = m.group("key")
@@ -422,6 +430,51 @@ def delete_env_file(dest: Path) -> None:
     if env_path.exists():
         env_path.unlink()
         logger.info("Deleted .env from %s", dest)
+
+
+def ensure_env_file(bot_id: int, dest: Path) -> tuple[Path | None, bool]:
+    """Guarantee a `.env` exists at `dest/.env` for container injection.
+
+    Priority:
+      1. Decrypt env vars stored in the DB (authoritative) and write them.
+      2. Fall back to any `.env`/`.env.*` extracted from the user's ZIP.
+
+    Returns (env_file_path_or_None, wrote_from_db).
+    """
+    env_path = dest / ".env"
+
+    # 1. Authoritative: env vars stored in the DB
+    if write_env_file(bot_id, dest):
+        return env_path, True
+
+    # 2. Fallback: preserve the user's own .env from the ZIP
+    candidates = [p for p in dest.rglob(".env") if p.is_file()]
+    candidates += [p for p in dest.rglob(".env.*") if p.is_file()]
+    if not candidates:
+        return None, False
+
+    # Pick the primary by priority order (same logic as pick_primary_env)
+    primary = None
+    priority = [".env", ".env.production", ".env.local"]
+    for p in priority:
+        for cand in candidates:
+            if cand.name == p:
+                primary = cand
+                break
+        if primary:
+            break
+    primary = primary or candidates[0]
+
+    if primary != env_path:
+        import shutil
+        shutil.copyfile(primary, env_path)
+        try:
+            env_path.chmod(0o600)
+        except Exception:
+            pass
+        logger.info("Copied user .env (%s) for bot %d", primary.name, bot_id)
+
+    return env_path, False
 
 
 # --- ZIP Extraction with Entry Detection ---

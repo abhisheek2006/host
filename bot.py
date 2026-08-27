@@ -50,8 +50,8 @@ from security import encrypt_value, decrypt_value, generate_key
 from env_manager import (
     inspect_zip_safety, safe_extract_zip, find_env_files, pick_primary_env,
     parse_env_file, encrypt_env_vars, decrypt_env_vars, get_env_keys,
-    write_env_file, delete_env_file, find_entry, extract_zip_project,
-    detect_dependencies, detect_dependencies_from_zip,
+    write_env_file, delete_env_file, ensure_env_file, find_entry,
+    extract_zip_project, detect_dependencies, detect_dependencies_from_zip,
 )
 from docker_manager import (
     make_container_name, docker_run, docker_stop, docker_exists, docker_logs,
@@ -447,12 +447,12 @@ def start_bot_docker(bot_id: int) -> str | None:
             shutil.rmtree(work_dir, ignore_errors=True)
             return err
 
-    env_file_path = work_dir / ".env"
-    env_loaded = False
-    if b.get("env_file_found"):
-        env_loaded = write_env_file(bot_id, work_dir)
-    if not env_loaded:
-        env_file_path = None
+    env_file_path, env_loaded = ensure_env_file(bot_id, work_dir)
+    if env_file_path is None and b.get("env_file_found"):
+        shutil.rmtree(work_dir, ignore_errors=True)
+        return "Your ZIP declared an environment file, but no .env contents could be found or stored. Re-upload the ZIP with a valid .env at the root."
+    if not env_loaded and env_file_path is not None:
+        logger.info("Bot %d: using user-provided .env from ZIP", bot_id)
 
     container_name = make_container_name(user_id, bot_id)
     packages = b.get("packages", [])
