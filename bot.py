@@ -35,7 +35,8 @@ from config import (
     UPDATE_CHANNEL, A4F_API_URL, A4F_API_KEY, A4F_MODEL, WEB_URL,
     MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, MAX_MEMORY, MAX_CPUS, MAX_PIDS,
     FREE_USER_LIMIT, SUBSCRIBED_USER_LIMIT, ADMIN_LIMIT, OWNER_LIMIT,
-    BOT_START_TIME, RUNTIME_DIR, ALLOWED_EXTENSIONS, DOCKER_IMAGE, logger,
+    AUTO_HEAL_WINDOW, BOT_START_TIME, RUNTIME_DIR, ALLOWED_EXTENSIONS,
+    DOCKER_IMAGE, logger,
 )
 from database import (
     init_db, db_add_bot, db_get_bot, db_get_bot_any, db_get_user_bots,
@@ -54,10 +55,11 @@ from env_manager import (
     parse_env_file, encrypt_env_vars, decrypt_env_vars, get_env_keys,
     write_env_file, delete_env_file, ensure_env_file, find_entry,
     extract_zip_project, detect_dependencies, detect_dependencies_from_zip,
+    detect_missing_module, map_module_to_package,
 )
 from docker_manager import (
     make_container_name, docker_run, docker_stop, docker_exists, docker_logs,
-    build_custom_image,
+    docker_running,
 )
 
 # ---------------------------------------------------------------------------
@@ -418,7 +420,7 @@ def cleanup_stale_bots() -> None:
 # ---------------------------------------------------------------------------
 
 
-def start_bot_docker(bot_id: int) -> str | None:
+def start_bot_docker(bot_id: int, _retries: int = 0) -> str | None:
     b = db_get_bot_any(bot_id)
     if not b:
         return "Bot not found"
@@ -457,7 +459,7 @@ def start_bot_docker(bot_id: int) -> str | None:
         logger.info("Bot %d: using user-provided .env from ZIP", bot_id)
 
     container_name = make_container_name(user_id, bot_id)
-    packages = b.get("packages", [])
+    packages = list(b.get("packages", []) or [])
     try:
         docker_run(container_name, work_dir, env_file_path, packages=packages, file_type=b["file_type"])
     except Exception as e:
@@ -466,7 +468,70 @@ def start_bot_docker(bot_id: int) -> str | None:
 
     db_update_bot(bot_id, status="running", container_name=container_name, runtime_path=str(work_dir))
     logger.info("Bot %d started, container=%s", bot_id, container_name)
+
+    # Auto-heal missing modules in the background so healthy bots start instantly
+    # and slow installs (which crash after the default install window) are still caught.
+    if _retries < 3:
+        threading.Thread(
+            target=_auto_heal_missing,
+            args=(bot_id, container_name, packages, _retries, AUTO_HEAL_WINDOW),
+            daemon=True,
+        ).start()
+
     return None
+
+
+def _auto_heal_missing(bot_id: int, container_name: str, packages: list[str], _retries: int, _window: float = 120.0) -> None:
+    """Background watcher: if the newly started container crashes on a missing
+    module, auto-install the package and restart it. Watches until the window
+    expires (healthy long run) or the container stops."""
+    b = db_get_bot_any(bot_id)
+    if not b:
+        return
+    file_type = b.get("file_type", "py")
+    deadline = time.monotonic() + _window
+    while time.monotonic() < deadline:
+        time.sleep(1)
+        try:
+            logs = docker_logs(container_name, tail=200)
+        except Exception:
+            logs = ""
+        missing = detect_missing_module(logs, file_type)
+        if missing:
+            pkgs = _missing_to_packages(missing, file_type)
+            if pkgs:
+                logger.info("Bot %d missing module '%s' -> auto-install %s (retry %d)", bot_id, missing, pkgs, _retries)
+                try:
+                    docker_stop(container_name)
+                except Exception as e:
+                    logger.error("Bot %d docker_stop during auto-install: %s", bot_id, e)
+                db_update_bot(bot_id, status="stopped", container_name=None, runtime_path=None)
+                db_update_bot(bot_id, packages=list(packages) + pkgs)
+                _notify_user_sync(b["user_id"], f"🔧 Found missing module `{missing}`. Installing `{', '.join(pkgs)}` and restarting, please wait...")
+                threading.Thread(
+                    target=start_bot_docker, args=(bot_id,), kwargs={"_retries": _retries + 1},
+                    daemon=True,
+                ).start()
+                return
+        if not docker_running(container_name):
+            # Container exited without a detectable missing module (crash)
+            # or was stopped manually; stop watching.
+            logger.info("Bot %d container %s no longer running during auto-heal watch", bot_id, container_name)
+            return
+
+    logger.info("Bot %d auto-heal window elapsed; no missing module detected (healthy).", bot_id)
+
+
+def _missing_to_packages(missing: str, file_type: str) -> list[str]:
+    """Turn a detected missing module/package name into the pip/npm packages to install."""
+    if file_type == "js":
+        if missing.startswith((".", "/", "@")):
+            return []
+        return [missing]
+    pkg = map_module_to_package(missing)
+    if pkg:
+        return [pkg]
+    return []
 
 
 def stop_bot_docker(bot_id: int) -> None:

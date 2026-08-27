@@ -83,6 +83,7 @@ MAX_PIDS = int(os.environ.get("MAX_PIDS", "128"))
 MAX_BOTS_PER_USER = int(os.environ.get("MAX_BOTS_PER_USER", "5"))
 FREE_USER_LIMIT = int(os.environ.get("FREE_USER_LIMIT", "2"))
 SUBSCRIBED_USER_LIMIT = int(os.environ.get("SUBSCRIBED_USER_LIMIT", "15"))
+AUTO_HEAL_WINDOW = int(os.environ.get("AUTO_HEAL_WINDOW", "120"))
 ADMIN_LIMIT = 999
 OWNER_LIMIT = float("inf")
 

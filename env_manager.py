@@ -246,6 +246,25 @@ def detect_dependencies_from_zip(data: bytes) -> list[str]:
     return detect_dependencies(full_code)
 
 
+# --- Missing-module detection (post-start auto-install) ---
+
+def map_module_to_package(module: str) -> str | None:
+    """Map an import module name to the pip package. None => stdlib/core (skip)."""
+    pkg = TELEGRAM_MODULES.get(module.lower(), module)
+    return pkg
+
+
+def detect_missing_module(logs: str, file_type: str = "py") -> str | None:
+    """Scan startup logs for a missing Python module or Node package."""
+    if not logs:
+        return None
+    if file_type == "js":
+        m = re.search(r"Cannot find module ['\"]([^'\"]+)['\"]", logs)
+        return m.group(1) if m else None
+    m = re.search(r"No module named ['\"]([^'\"]+)['\"]", logs)
+    return m.group(1) if m else None
+
+
 # --- ZIP Safety ---
 
 def inspect_zip_safety(data: bytes) -> tuple[bool, str]:

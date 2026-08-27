@@ -49,6 +49,8 @@ def docker_run(
         pkg_path = work_dir / "package.json"
         if pkg_path.exists():
             install_parts.append("npm install --no-audit --no-fund")
+        if packages:
+            install_parts.append("npm install --no-audit --no-fund " + " ".join(packages))
     else:
         # Install from requirements.txt if present in the user's project
         req_path = work_dir / "requirements.txt"
@@ -97,6 +99,15 @@ def docker_exists(name: str) -> bool:
         ["docker", "inspect", name], capture_output=True, text=True, timeout=10
     )
     return r.returncode == 0
+
+
+def docker_running(name: str) -> bool:
+    """True if the named container exists and is currently running."""
+    r = subprocess.run(
+        ["docker", "inspect", "--format", "{{.State.Running}}", name],
+        capture_output=True, text=True, timeout=10,
+    )
+    return r.returncode == 0 and r.stdout.strip() == "true"
 
 
 def docker_logs(name: str, tail: int = 50) -> str:
