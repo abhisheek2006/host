@@ -7,8 +7,8 @@ Requires=docker.service
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu/hosting-bot
-ExecStart=/home/ubuntu/hosting-bot/venv/bin/python /home/ubuntu/hosting-bot/bot.py
+WorkingDirectory=/home/ubuntu/host
+ExecStart=/home/ubuntu/host/venv/bin/python /home/ubuntu/host/bot.py
 Restart=always
 RestartSec=5
 

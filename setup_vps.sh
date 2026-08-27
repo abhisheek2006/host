@@ -31,7 +31,7 @@ else
 fi
 
 # Create project directory
-PROJ_DIR="/home/ubuntu/hosting-bot"
+PROJ_DIR="/home/ubuntu/host"
 sudo mkdir -p "$PROJ_DIR"
 sudo chown ubuntu:ubuntu "$PROJ_DIR"
 
