@@ -940,11 +940,21 @@ async def handle_text(client: Client, message: types.Message) -> None:
                 await message.reply_text("Access denied.")
                 return
             b = b_any
-        key = text.strip()
+        # Accept both "KEY" and "KEY=VALUE" formats
+        parts = text.split("=", 1)
+        key = parts[0].strip()
+        inline_value = parts[1].strip() if len(parts) == 2 else None
         keys = get_env_keys(bot_id)
         if key not in keys:
             awaiting_input.pop(uid, None)
             await message.reply_text(f"❌ Key `{key}` not found.\n\nAvailable keys: {', '.join(keys)}")
+            return
+        if inline_value is not None:
+            # KEY=VALUE -> save directly, no second prompt
+            awaiting_input.pop(uid, None)
+            encrypted = encrypt_value(inline_value)
+            db_save_env(bot_id, key, encrypted)
+            await message.reply_text(f"✅ Variable `{key}` updated for bot `{bot_id}`.")
             return
         awaiting_input[uid] = f"env_edit_val:{bot_id}:{key}"
         await message.reply_text(f"Send the new value for `{key}`.\n/cancel to abort.")
