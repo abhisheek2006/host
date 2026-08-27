@@ -16,7 +16,9 @@ from flask import Flask, jsonify, request, send_from_directory, Response
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 import database
-from config import ENV_ENCRYPTION_KEY, RUNTIME_DIR, WEB_URL, logger
+from config import (
+    ENV_ENCRYPTION_KEY, RUNTIME_DIR, WEB_URL, ADMIN_OTP, OWNER_ID, ADMIN_IDS, logger,
+)
 from docker_manager import docker_exists, docker_logs
 from env_manager import get_env_keys, decrypt_env_vars
 from security import encrypt_value
@@ -55,6 +57,32 @@ def _require_user() -> dict:
     data = _read_token()
     if not data:
         raise PermissionError("Not authenticated")
+    return data
+
+
+def _is_admin_uid(uid: int) -> bool:
+    if uid == OWNER_ID:
+        return True
+    if uid in ADMIN_IDS:
+        return True
+    try:
+        if uid in database.db_load_admins():
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _make_admin_token(user_id: int) -> str:
+    return _serializer.dumps({"uid": user_id, "admin": True})
+
+
+def _require_admin() -> dict:
+    data = _read_token()
+    if not data or not data.get("admin"):
+        raise PermissionError("Not authenticated")
+    if not _is_admin_uid(data["uid"]):
+        raise PermissionError("Forbidden")
     return data
 
 
@@ -334,6 +362,82 @@ def api_delete_bot(bot_id: int):
 
     database.db_delete_bot(bot_id)
     return jsonify({"deleted": True})
+
+
+# ---------------------------------------------------------------- admin
+
+MAINTENANCE_NOTICE = (
+    "🔧 <b>The bot is currently under maintenance.</b>\n\n"
+    "Please try again later. Thank you for your patience!"
+)
+
+
+@app.post("/api/admin/login")
+def api_admin_login():
+    body = request.get_json(silent=True) or {}
+    try:
+        uid = int(body.get("uid", ""))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid Telegram UID"}), 400
+    otp = (body.get("otp") or "").strip()
+    if not _is_admin_uid(uid):
+        return jsonify({"error": "This UID is not an admin"}), 403
+    if not ADMIN_OTP:
+        return jsonify({"error": "Admin OTP is not configured on the server"}), 500
+    if otp != ADMIN_OTP:
+        return jsonify({"error": "Invalid OTP"}), 401
+    return jsonify({"token": _make_admin_token(uid), "admin": True})
+
+
+@app.get("/api/admin/me")
+def api_admin_me():
+    try:
+        data = _require_admin()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    return jsonify({"admin": True, "user_id": data["uid"]})
+
+
+@app.get("/api/admin/maintenance")
+def api_admin_maintenance_get():
+    try:
+        _require_admin()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    on = database.db_is_maintenance()
+    notice = database.db_get_setting("maintenance_notice", MAINTENANCE_NOTICE)
+    return jsonify({"maintenance": on, "notice": notice})
+
+
+@app.post("/api/admin/maintenance")
+def api_admin_maintenance_set():
+    try:
+        _require_admin()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    body = request.get_json(silent=True) or {}
+    on = bool(body.get("maintenance"))
+    database.db_set_setting("maintenance", on)
+    notice = (body.get("notice") or "").strip() or MAINTENANCE_NOTICE
+    database.db_set_setting("maintenance_notice", notice)
+    logger.warning("Maintenance set to %s by admin %d", on, _read_token()["uid"])
+    if on:
+        database.db_save_outbox("broadcast", notice)
+    return jsonify({"maintenance": on, "notice": notice})
+
+
+@app.post("/api/admin/broadcast")
+def api_admin_broadcast():
+    try:
+        _require_admin()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    body = request.get_json(silent=True) or {}
+    text = (body.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "Message is required"}), 400
+    database.db_save_outbox("broadcast", text)
+    return jsonify({"queued": True})
 
 
 # ---------------------------------------------------------------- run

@@ -55,6 +55,9 @@ UPDATE_CHANNEL = os.environ.get("UPDATE_CHANNEL", "")
 # Web dashboard URL (shown to users when logging in to the dashboard)
 WEB_URL = os.environ.get("WEB_URL", "http://localhost:8000")
 
+# Static OTP used to sign into the dashboard admin panel (with your Telegram UID)
+ADMIN_OTP = os.environ.get("ADMIN_OTP", "")
+
 # --- AI ---
 A4F_API_URL = os.environ.get("A4F_API_URL", "")
 A4F_API_KEY = os.environ.get("A4F_API_KEY", "")

@@ -14,11 +14,13 @@ admins_col = None  # type: ignore[assignment]
 envs_col = None  # type: ignore[assignment]
 login_col = None  # type: ignore[assignment]
 profiles_col = None  # type: ignore[assignment]
+settings_col = None  # type: ignore[assignment]
+outbox_col = None  # type: ignore[assignment]
 _counters_col = None  # type: ignore[assignment]
 
 
 def init_db() -> None:
-    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, profiles_col, _counters_col
+    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, profiles_col, settings_col, outbox_col, _counters_col
     try:
         mongo_client = MongoClient(
             MONGO_URI,
@@ -40,6 +42,8 @@ def init_db() -> None:
     envs_col = db["bot_env"]
     login_col = db["login_codes"]
     profiles_col = db["profiles"]
+    settings_col = db["settings"]
+    outbox_col = db["outbox"]
     _counters_col = db["counters"]
 
     bots_col.create_index([("user_id", ASCENDING)])
@@ -255,3 +259,37 @@ def db_save_profile(user_id: int, first_name: str, username: str | None, bio: st
 
 def db_get_profile(user_id: int) -> dict | None:
     return profiles_col.find_one({"user_id": user_id}, {"_id": 0})
+
+
+# --- Shared settings (bot <-> dashboard) ---
+
+def db_get_setting(key: str, default=None):
+    row = settings_col.find_one({"_id": key})
+    return row["value"] if row else default
+
+
+def db_set_setting(key: str, value) -> None:
+    settings_col.update_one({"_id": key}, {"$set": {"value": value}}, upsert=True)
+
+
+def db_is_maintenance() -> bool:
+    return bool(db_get_setting("maintenance", False))
+
+
+# --- Broadcast outbox (dashboard -> bot) ---
+
+def db_save_outbox(kind: str, text: str) -> None:
+    outbox_col.insert_one(
+        {"kind": kind, "text": text, "status": "pending", "created_at": datetime.utcnow().isoformat()}
+    )
+
+
+def db_take_outbox() -> dict | None:
+    """Atomically grab one pending outbox item (claim it as processing)."""
+    row = outbox_col.find_one_and_update(
+        {"status": "pending"},
+        {"$set": {"status": "processing"}},
+        sort=[("created_at", 1)],
+        return_document=True,
+    )
+    return row

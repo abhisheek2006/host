@@ -46,6 +46,8 @@ from database import (
     db_load_admins, db_pending_count, db_get_pending_bots, db_get_approved_stopped,
     db_count_approved, db_save_login_code, db_get_login_code, db_delete_login_code,
     db_delete_login_code_expired, db_save_profile,
+    db_get_setting, db_set_setting, db_is_maintenance,
+    db_save_outbox, db_take_outbox,
 )
 from r2_storage import r2_upload, r2_download, r2_delete, r2_upload_profile
 import database
@@ -185,6 +187,85 @@ def _notify_user_sync(user_id: int, text: str) -> None:
             asyncio.run(_notify_user(user_id, text))
         except Exception as e:
             logger.error("Notify user %d failed: %s", user_id, e)
+
+
+MAINTENANCE_NOTICE = (
+    "🔧 <b>The bot is currently under maintenance.</b>\n\n"
+    "Please try again later. Thank you for your patience!"
+)
+
+
+async def _send_rich(client, target_id: int, text: str) -> None:
+    """Send with HTML parse mode first, then Markdown, then plain text."""
+    try:
+        await client.send_message(target_id, text, parse_mode=enums.ParseMode.HTML)
+        return
+    except Exception:
+        pass
+    try:
+        await client.send_message(target_id, text, parse_mode=enums.ParseMode.MARKDOWN)
+        return
+    except Exception:
+        pass
+    try:
+        await client.send_message(target_id, text)
+    except Exception as e:
+        logger.error("Send rich msg to %d failed: %s", target_id, e)
+
+
+@app.on_message(filters.all, group=-1)
+async def _maintenance_guard(client: Client, message: types.Message) -> None:
+    """Pause the bot for everyone except admins while under maintenance."""
+    if not db_is_maintenance():
+        await client.continue_propagation()
+        return
+    if is_admin(message.from_user.id):
+        await client.continue_propagation()
+        return
+    try:
+        notice = db_get_setting("maintenance_notice", MAINTENANCE_NOTICE) or MAINTENANCE_NOTICE
+        await _send_rich(client, message.from_user.id, notice)
+    except Exception as e:
+        logger.error("maintenance notice to %d: %s", message.from_user.id, e)
+    # stop all further handlers for this message
+    try:
+        await client.stop_propagation()
+    except Exception:
+        pass
+
+
+def _broadcast_poller() -> None:
+    """Background thread: claim broadcast requests from the dashboard outbox
+    and send them to all active users (supports HTML + [text](url) links)."""
+    import asyncio
+
+    while True:
+        try:
+            item = db_take_outbox()
+            if item:
+                text = item.get("text", "")
+                results = {"sent": 0, "failed": 0}
+                try:
+                    async def _run():
+                        async with app:
+                            for target in list(active_users):
+                                try:
+                                    await _send_rich(app, target, text)
+                                    results["sent"] += 1
+                                except Exception:
+                                    results["failed"] += 1
+                                if (results["sent"] + results["failed"]) % 25 == 0:
+                                    await asyncio.sleep(1)
+                    asyncio.run(_run())
+                except Exception as e:
+                    logger.error("broadcast run failed: %s", e)
+                logger.info("Broadcast done: sent=%d failed=%d", results["sent"], results["failed"])
+        except Exception as e:
+            logger.error("broadcast poller error: %s", e)
+        time.sleep(3)
+
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -1856,6 +1937,7 @@ def main() -> None:
     admin_ids = db_load_admins()
     cleanup_stale_bots()
     build_custom_image()
+    threading.Thread(target=_broadcast_poller, daemon=True).start()
     logger.info("Hosting bot starting...")
     app.run()
 

@@ -85,9 +85,78 @@
           <p class="text-xs text-gray-500">Dashboard</p>
         </div>
       </div>
-      <button id="logout-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
-        <i class="ph-bold ph-sign-out text-base"></i> Logout
-      </button>
+      <div class="flex items-center gap-2">
+        <button id="admin-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
+          <i class="ph-bold ph-shield-star text-base"></i> Admin
+        </button>
+        <button id="logout-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
+          <i class="ph-bold ph-sign-out text-base"></i> Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL VIEW -->
+    <div id="view-admin" class="hidden max-w-3xl mx-auto px-4 py-8">
+      <div class="card p-6">
+        <div class="flex items-center gap-2.5 mb-6">
+          <span class="w-9 h-9 rounded-lg bg-accent/15 border border-accent/25 flex items-center justify-center">
+            <i class="ph-bold ph-shield-star text-accent"></i>
+          </span>
+          <div>
+            <p class="text-white font-semibold leading-tight">Admin Panel</p>
+            <p class="text-xs text-gray-500">Maintenance & broadcast</p>
+          </div>
+        </div>
+
+        <!-- Admin login -->
+        <div id="admin-login">
+          <p class="text-sm text-gray-400 mb-4">Sign in with your Telegram UID and the static admin OTP.</p>
+          <label class="block text-xs text-gray-400 mb-1.5" for="admin-uid">Telegram UID</label>
+          <input id="admin-uid" type="number" inputmode="numeric" placeholder="123456789"
+            class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
+          <label class="block text-xs text-gray-400 mb-1.5" for="admin-otp">Admin OTP</label>
+          <input id="admin-otp" type="password" inputmode="numeric" placeholder="••••••"
+            class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-accent/60 transition-colors" />
+          <button id="admin-login-btn" class="btn-accent w-full mt-5 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98]">Login as Admin</button>
+          <p id="admin-login-error" class="hidden mt-4 text-center text-sm text-red-400"></p>
+        </div>
+
+        <!-- Admin controls -->
+        <div id="admin-controls" class="hidden">
+          <p id="admin-who" class="text-xs text-gray-500 mb-5"></p>
+
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm text-white font-semibold">🔧 Maintenance Mode</p>
+              <button id="maint-toggle" class="relative w-12 h-7 rounded-full bg-surface-3 border border-white/10 transition-colors">
+                <span id="maint-knob" class="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-gray-500 transition-all"></span>
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mb-3">Turn on maintenance to pause the bot for everyone except the admin. Turning it on also broadcasts the notice below.</p>
+            <label class="block text-xs text-gray-400 mb-1.5" for="maint-notice">Maintenance notice (HTML + [text](url) supported)</label>
+            <textarea id="maint-notice" rows="3"
+              class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white text-sm font-mono focus:outline-none focus:border-accent/60 transition-colors">🔧 &lt;b&gt;The bot is currently under maintenance.&lt;/b&gt;
+
+Please try again later. Thank you for your patience!</textarea>
+            <button id="maint-save" class="btn-ghost mt-3 px-4 py-2 rounded-lg text-sm transition-colors">Save notice</button>
+          </div>
+
+          <hr class="border-white/5 my-6">
+
+          <div class="mb-4">
+            <p class="text-sm text-white font-semibold mb-2">📢 Broadcast a message</p>
+            <p class="text-xs text-gray-500 mb-3">Sent to all users. Supports HTML formatting and [text](url) links.</p>
+            <textarea id="broadcast-text" rows="4" placeholder="Hello everyone!"
+              class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white text-sm font-mono focus:outline-none focus:border-accent/60 transition-colors"></textarea>
+            <button id="broadcast-send" class="btn-accent mt-3 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-[0.98]">Send Broadcast</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mt-4">
+        <button id="admin-back" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"><i class="ph-bold ph-arrow-left text-base"></i> Back to Dashboard</button>
+        <button id="admin-logout" class="ml-auto btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"><i class="ph-bold ph-sign-out text-base"></i> Logout</button>
+      </div>
     </div>
 
     <!-- PROFILE SECTION -->
@@ -161,6 +230,7 @@
     function showView(which) {
       $('#view-login').classList.toggle('hidden', which !== 'login');
       $('#view-dashboard').classList.toggle('hidden', which !== 'dashboard');
+      $('#view-admin').classList.toggle('hidden', which !== 'admin');
     }
 
     function statusBadge(b) {
@@ -410,12 +480,106 @@
       }
     }
 
+    let ATOKEN = localStorage.getItem('hb_admin_token');
+
+    function adminApi(path, opts = {}) {
+      const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+      if (ATOKEN) headers['Authorization'] = 'Bearer ' + ATOKEN;
+      return fetch(path, Object.assign({}, opts, { headers })).then(async r => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      });
+    }
+
+    function adminLogout() {
+      ATOKEN = null;
+      localStorage.removeItem('hb_admin_token');
+      $('#admin-login').classList.remove('hidden');
+      $('#admin-controls').classList.add('hidden');
+    }
+
+    function setMaintUI(on) {
+      $('#maint-knob').style.left = on ? '22px' : '2px';
+      $('#maint-knob').style.background = on ? '#22d3ee' : '#6b7280';
+      $('#maint-toggle').classList.toggle('bg-accent/30', on);
+    }
+
+    async function loadAdminState() {
+      if (!ATOKEN) { $('#admin-login').classList.remove('hidden'); $('#admin-controls').classList.add('hidden'); return; }
+      try {
+        const me = await adminApi('/api/admin/me');
+        $('#admin-who').textContent = 'Signed in as admin (UID ' + me.user_id + ')';
+        const st = await adminApi('/api/admin/maintenance');
+        $('#maint-notice').value = st.notice || '';
+        setMaintUI(st.maintenance);
+        $('#admin-login').classList.add('hidden');
+        $('#admin-controls').classList.remove('hidden');
+      } catch (e) {
+        adminLogout();
+        toast('Admin session expired', false);
+      }
+    }
+
+    async function adminLogin() {
+      const err = $('#admin-login-error');
+      err.classList.add('hidden');
+      const uid = $('#admin-uid').value.trim();
+      const otp = $('#admin-otp').value.trim();
+      if (!uid || !otp) { err.textContent = 'Enter both UID and OTP.'; err.classList.remove('hidden'); return; }
+      try {
+        const d = await adminApi('/api/admin/login', { method: 'POST', body: JSON.stringify({ uid, otp }) });
+        ATOKEN = d.token;
+        localStorage.setItem('hb_admin_token', ATOKEN);
+        $('#admin-uid').value = ''; $('#admin-otp').value = '';
+        await loadAdminState();
+        toast('Admin sign-in successful');
+      } catch (e) {
+        err.textContent = e.message; err.classList.remove('hidden');
+      }
+    }
+
+    async function toggleMaintenance() {
+      const st = await adminApi('/api/admin/maintenance');
+      const next = !st.maintenance;
+      setMaintUI(next);
+      try {
+        await adminApi('/api/admin/maintenance', { method: 'POST', body: JSON.stringify({ maintenance: next, notice: $('#maint-notice').value }) });
+        toast(next ? 'Maintenance turned ON (notice broadcast to users)' : 'Maintenance turned OFF');
+      } catch (e) { loadAdminState(); toast(e.message, false); }
+    }
+
+    async function saveNotice() {
+      try {
+        const st = await adminApi('/api/admin/maintenance');
+        await adminApi('/api/admin/maintenance', { method: 'POST', body: JSON.stringify({ maintenance: st.maintenance, notice: $('#maint-notice').value }) });
+        toast('Notice saved');
+      } catch (e) { toast(e.message, false); }
+    }
+
+    async function sendBroadcast() {
+      const text = $('#broadcast-text').value.trim();
+      if (!text) { toast('Enter a message to broadcast', false); return; }
+      try {
+        await adminApi('/api/admin/broadcast', { method: 'POST', body: JSON.stringify({ text }) });
+        $('#broadcast-text').value = '';
+        toast('Broadcast queued & sending to all users');
+      } catch (e) { toast(e.message, false); }
+    }
+
     $('#login-btn').onclick = login;
     $('#code').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
     $('#goto-dashboard').onclick = gotoDashboard;
     $('#logout-btn').onclick = logout;
     $('#refresh-btn').onclick = loadBots;
     $('#profile-refresh').onclick = loadProfile;
+    $('#admin-btn').onclick = () => { showView('admin'); loadAdminState(); };
+    $('#admin-login-btn').onclick = adminLogin;
+    $('#maint-toggle').onclick = toggleMaintenance;
+    $('#maint-save').onclick = saveNotice;
+    $('#broadcast-send').onclick = sendBroadcast;
+    $('#admin-back').onclick = () => { showView('dashboard'); };
+    $('#admin-logout').onclick = () => { adminLogout(); showView('dashboard'); toast('Admin logged out'); };
 
     // init
     refreshLoginButton();
