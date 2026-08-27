@@ -325,6 +325,17 @@ _ENV_LINE_RE = re.compile(
 )
 
 
+def _unquote(value: str) -> str:
+    """Remove one layer of surrounding quotes and unescape inside quotes."""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+        quote = value[0]
+        inner = value[1:-1]
+        if quote == '"':
+            return re.sub(r'\\(.)', r'\1', inner)
+        return inner.replace("\\'", "'")
+    return value
+
+
 def parse_env_file(content: str) -> dict[str, str]:
     """Parse .env content into key-value dict. Safe, no exec/eval."""
     result = {}
@@ -336,11 +347,27 @@ def parse_env_file(content: str) -> dict[str, str]:
         if m:
             key = m.group("key")
             value = m.group("value").strip()
-            # Remove surrounding quotes
-            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
-                value = value[1:-1]
-            result[key] = value
+            result[key] = _unquote(value)
     return result
+
+
+def _format_env_line(key: str, value: str) -> str:
+    """Format one ENV line so it round-trips (python-dotenv & Docker --env-file compatible).
+
+    Values that contain any character Docker env-file or dotenv would treat
+    specially (spaces, '#', '$', quotes, backslashes) are double-quoted and
+    escaped so the exact value is preserved.
+    """
+    # Always quote when the value is empty or contains characters that would
+    # be misread as a comment/truncated otherwise.
+    if (
+        value == ""
+        or any(c in value for c in ('"', "'", "\\", " ", "\t", "#", "$", "`", "\n"))
+        or value[0] in "="  # prevent KEY==foo being truncated to KEY=
+    ):
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+        return f'{key}="{escaped}"'
+    return f"{key}={value}"
 
 
 # --- Encryption/Decryption ---
@@ -382,7 +409,7 @@ def write_env_file(bot_id: int, dest: Path) -> bool:
     if not env_vars:
         return False
     env_path = dest / ".env"
-    lines = [f"{k}={v}" for k, v in env_vars.items()]
+    lines = [_format_env_line(k, v) for k, v in env_vars.items()]
     env_path.write_text("\n".join(lines) + "\n")
     env_path.chmod(0o600)
     logger.info("Wrote .env for bot %d (%d vars)", bot_id, len(env_vars))

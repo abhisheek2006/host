@@ -710,7 +710,7 @@ async def handle_document(client: Client, message: types.Message) -> None:
     # ZIP inspection
     env_found = False
     env_count = 0
-    env_keys_list: list[str] = []
+    env_vars: dict[str, str] = {}
 
     # Detect dependencies from code
     if ext == ".py":
@@ -731,11 +731,11 @@ async def handle_document(client: Client, message: types.Message) -> None:
                 try:
                     with zipfile.ZipFile(io.BytesIO(data)) as zf:
                         content = zf.read(primary).decode("utf-8", errors="replace")
-                        env_vars = parse_env_file(content)
-                        if env_vars:
+                        parsed = parse_env_file(content)
+                        if parsed:
                             env_found = True
-                            env_count = encrypt_env_vars(0, env_vars)  # temp bot_id=0, will update after insert
-                            env_keys_list = list(env_vars.keys())
+                            env_vars = parsed
+                            env_count = len(parsed)
                 except Exception as e:
                     logger.error("ZIP env parse error user=%s: %s", uid, e)
 
@@ -745,7 +745,7 @@ async def handle_document(client: Client, message: types.Message) -> None:
     file_type = _ext_map.get(ext, ext.lstrip("."))
     bot_id = db_add_bot(uid, filename, file_type, r2_key="", env_found=env_found, packages=detected_pkgs)
 
-    # Re-encrypt with correct bot_id and upload to R2 with bot_id
+    # Upload to R2 with bot_id
     try:
         r2_key = r2_upload(uid, bot_id, filename, data)
         db_update_bot(bot_id, r2_key=r2_key)
@@ -754,23 +754,12 @@ async def handle_document(client: Client, message: types.Message) -> None:
         await status_msg.edit_text("❌ Cloud storage upload failed.")
         return
 
-    # Re-encrypt env vars with correct bot_id if found
-    if env_found and env_keys_list:
-        db_delete_all_envs(0)  # remove temp entries
-        # Re-parse and encrypt with correct bot_id
-        if ext == ".zip":
-            try:
-                env_files = find_env_files(data)
-                primary = pick_primary_env(env_files)
-                if primary:
-                    with zipfile.ZipFile(io.BytesIO(data)) as zf:
-                        content = zf.read(primary).decode("utf-8", errors="replace")
-                        env_vars = parse_env_file(content)
-                        if env_vars:
-                            encrypt_env_vars(bot_id, env_vars)
-                            env_count = len(env_vars)
-            except Exception:
-                pass
+    # Encrypt env vars with the real bot_id (no temp storage, no race condition)
+    if env_found and env_vars:
+        try:
+            encrypt_env_vars(bot_id, env_vars)
+        except Exception as e:
+            logger.error("Env encrypt failed for bot=%d user=%s: %s", bot_id, uid, e)
 
     save_user_file(uid, filename, file_type)
     logger.info("Uploaded user=%s bot=%d file=%s", uid, bot_id, filename)
