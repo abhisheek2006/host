@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HostBot Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            surface: { 0: '#0a0a0f', 1: '#0f1018', 2: '#16171f', 3: '#1e1f2a' },
+            accent: { DEFAULT: '#22d3ee', dim: '#0e7490', glow: 'rgba(34,211,238,0.12)' },
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/bold/style.css" />
+  <style>
+    body { background: #0a0a0f; }
+    .card { background: #0f1018; border: 1px solid rgba(255,255,255,0.06); border-radius: 1rem; }
+    .btn-accent { background: #22d3ee; color: #0a0a0f; }
+    .btn-accent:hover { background: #67e8f9; }
+    .btn-ghost { border: 1px solid rgba(255,255,255,0.1); color: #d1d5db; }
+    .btn-ghost:hover { background: rgba(255,255,255,0.05); }
+    .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.6rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+    .badge-on { background: rgba(34,211,238,0.15); color: #22d3ee; }
+    .badge-off { background: rgba(239,68,68,0.15); color: #f87171; }
+    .badge-pending { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); z-index: 50; }
+  </style>
+</head>
+<body class="text-gray-300 font-display antialiased min-h-screen">
+
+  <!-- LOGIN VIEW -->
+  <div id="view-login" class="flex items-center justify-center min-h-screen px-4">
+    <div class="card w-full max-w-md p-8">
+      <div class="flex items-center gap-2.5 mb-8">
+        <span class="w-8 h-8 rounded-lg bg-accent/15 border border-accent/25 flex items-center justify-center">
+          <i class="ph-bold ph-terminal text-accent text-sm"></i>
+        </span>
+        <span class="text-white font-semibold text-lg tracking-tight">HostBot</span>
+      </div>
+      <h1 class="text-2xl font-bold text-white mb-1">Sign in</h1>
+      <p class="text-sm text-gray-500 mb-6">Enter your one-time login code from the Telegram bot.</p>
+
+      <label class="block text-xs text-gray-400 mb-1.5" for="code">Login code</label>
+      <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+        placeholder="000000"
+        class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono text-center tracking-[0.5em] placeholder-gray-600 focus:outline-none focus:border-accent/60 transition-colors" />
+
+      <button id="login-btn" class="btn-accent w-full mt-6 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98]">
+        Sign in
+      </button>
+      <p class="text-xs text-gray-500 text-center mt-5">
+        Message the bot with <span class="text-accent font-mono">/web_login</span> to get a code.
+      </p>
+      <p id="login-error" class="hidden mt-4 text-center text-sm text-red-400"></p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="view-dashboard" class="hidden max-w-5xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-2.5">
+        <span class="w-9 h-9 rounded-lg bg-accent/15 border border-accent/25 flex items-center justify-center">
+          <i class="ph-bold ph-terminal text-accent"></i>
+        </span>
+        <div>
+          <p class="text-white font-semibold leading-tight">HostBot</p>
+          <p class="text-xs text-gray-500">Dashboard</p>
+        </div>
+      </div>
+      <button id="logout-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
+        <i class="ph-bold ph-sign-out text-base"></i> Logout
+      </button>
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold text-white">Your bots</h2>
+      <button id="refresh-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
+        <i class="ph-bold ph-arrows-clockwise" id="refresh-icon"></i> Refresh
+      </button>
+    </div>
+
+    <div id="bots-empty" class="hidden text-center py-16 text-gray-500">
+      <i class="ph-bold ph-tray text-4xl mb-3 block text-gray-600"></i>
+      <p class="text-sm">You don't have any bots yet.</p>
+      <p class="text-xs mt-1">Upload a bot via the Telegram bot to get started.</p>
+    </div>
+
+    <div id="bots-list" class="space-y-4"></div>
+  </div>
+
+  <!-- BOT DETAIL MODAL -->
+  <div id="modal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" data-close></div>
+    <div class="card relative w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="modal-title" class="text-lg font-bold text-white">Bot</h3>
+        <button data-close class="text-gray-400 hover:text-white transition-colors"><i class="ph-bold ph-x text-xl"></i></button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden px-5 py-3 rounded-lg text-sm font-medium shadow-lg"></div>
+
+  <script>
+    const $ = (s, el = document) => el.querySelector(s);
+    let TOKEN = localStorage.getItem('hb_token');
+
+    function api(path, opts = {}) {
+      const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+      if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+      return fetch(path, Object.assign({}, opts, { headers })).then(async r => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      });
+    }
+
+    function toast(msg, ok = true) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.className = 'toast px-5 py-3 rounded-lg text-sm font-medium shadow-lg ' +
+        (ok ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white');
+      t.classList.remove('hidden');
+      clearTimeout(t._h);
+      t._h = setTimeout(() => t.classList.add('hidden'), 3000);
+    }
+
+    function showView(which) {
+      $('#view-login').classList.toggle('hidden', which !== 'login');
+      $('#view-dashboard').classList.toggle('hidden', which !== 'dashboard');
+    }
+
+    function statusBadge(b) {
+      if (b.approval !== 'approved') return '<span class="badge badge-pending">Pending approval</span>';
+      return b.status === 'running'
+        ? '<span class="badge badge-on"><span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>Running</span>'
+        : '<span class="badge badge-off">Stopped</span>';
+    }
+
+    async function loadBots() {
+      $('#refresh-icon').classList.add('spin');
+      try {
+        const data = await api('/api/bots');
+        const list = $('#bots-list');
+        list.innerHTML = '';
+        if (!data.bots.length) {
+          $('#bots-empty').classList.remove('hidden');
+          list.classList.add('hidden');
+          return;
+        }
+        $('#bots-empty').classList.add('hidden');
+        list.classList.remove('hidden');
+        data.bots.forEach(b => {
+          const el = document.createElement('div');
+          el.className = 'card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4';
+          el.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-mono text-xs text-gray-500">#${b.id}</span>
+                ${statusBadge(b)}
+              </div>
+              <p class="text-white font-semibold truncate">${b.filename}</p>
+              <p class="text-xs text-gray-500 mt-0.5">${b.file_type} · ${b.env_keys.length} env var${b.env_keys.length === 1 ? '' : 's'}</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              ${b.status === 'running'
+                ? `<button data-act="stop" data-id="${b.id}" class="btn-ghost px-4 py-2 rounded-lg text-sm inline-flex items-center gap-1.5"><i class="ph-bold ph-stop"></i> Stop</button>`
+                : `<button data-act="start" data-id="${b.id}" class="btn-accent px-4 py-2 rounded-lg text-sm inline-flex items-center gap-1.5 font-semibold"><i class="ph-bold ph-play"></i> Start</button>`}
+              <button data-act="manage" data-id="${b.id}" class="btn-accent px-4 py-2 rounded-lg text-sm inline-flex items-center gap-1.5 font-semibold"><i class="ph-bold ph-sliders-horizontal"></i> Manage</button>
+            </div>`;
+          list.appendChild(el);
+        });
+      } catch (e) {
+        if (e.message === 'Not authenticated') { logout(); } else { toast(e.message, false); }
+      } finally {
+        $('#refresh-icon').classList.remove('spin');
+      }
+    }
+
+    async function action(botId, act) {
+      const btn = $(`button[data-act="${act === 'manage' ? 'manage' : (act === 'start' ? 'start' : 'stop')}"][data-id="${botId}"]`);
+      if (btn) { btn.disabled = true; btn.classList.add('opacity-60'); }
+      try {
+        if (act === 'start') await api('/api/bots/' + botId + '/start', { method: 'POST' });
+        else if (act === 'stop') await api('/api/bots/' + botId + '/stop', { method: 'POST' });
+        toast(act === 'start' ? 'Bot started' : 'Bot stopped');
+        await loadBots();
+      } catch (e) {
+        toast(e.message, false);
+        btn && (btn.disabled = false) && btn.classList.remove('opacity-60');
+      }
+    }
+
+    function openModal(b) {
+      $('#modal').classList.remove('hidden');
+      $('#modal-title').textContent = b.filename + '  #' + b.id;
+      $('#modal-body').innerHTML = `
+        <div class="flex items-center gap-2 mb-4">${statusBadge(b)}</div>
+
+        <div class="mb-5">
+          <p class="text-xs text-gray-400 font-semibold mb-2">Environment variables</p>
+          <div id="env-list" class="space-y-2">
+            ${b.env_keys.length ? b.env_keys.map(k => `
+              <div class="flex items-center justify-between bg-surface-2 border border-white/5 rounded-lg px-3 py-2">
+                <span class="font-mono text-sm text-white">${k}</span>
+                <span class="text-gray-500 font-mono text-xs">••••••••</span>
+              </div>`).join('') : '<p class="text-sm text-gray-500">No env vars set.</p>'}
+          </div>
+          <div class="flex gap-2 mt-3">
+            <input id="env-key" placeholder="KEY" class="flex-1 bg-surface-2 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-accent/60" />
+            <input id="env-val" placeholder="VALUE" class="flex-1 bg-surface-2 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-accent/60" />
+            <button id="env-add" class="btn-accent px-4 py-2 rounded-lg text-sm font-semibold shrink-0">Add / Update</button>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-xs text-gray-400 font-semibold">Logs</p>
+            <button id="logs-refresh" class="btn-ghost px-3 py-1 rounded text-xs inline-flex items-center gap-1"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
+          </div>
+          <pre id="logs" class="bg-surface-0 border border-white/5 rounded-lg p-4 text-xs font-mono text-gray-400 h-48 overflow-auto whitespace-pre-wrap"></pre>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          ${b.status === 'running'
+            ? `<button id="btn-stop" class="btn-ghost px-4 py-2 rounded-lg text-sm inline-flex items-center gap-1.5"><i class="ph-bold ph-stop"></i> Stop</button>`
+            : `<button id="btn-start" class="btn-accent px-4 py-2 rounded-lg text-sm inline-flex items-center gap-1.5 font-semibold"><i class="ph-bold ph-play"></i> Start</button>`}
+          ${b.status === 'running'
+            ? `<button id="btn-restart" class="btn-ghost px-4 py-2 rounded-lg text-sm inline-flex items-center gap-1.5"><i class="ph-bold ph-arrows-clockwise"></i> Restart</button>`
+            : ''}
+          <button id="btn-delete" class="ml-auto px-4 py-2 rounded-lg text-sm inline-flex items-center gap-1.5 text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"><i class="ph-bold ph-trash"></i> Delete</button>
+        </div>`;
+
+      $('#logs').textContent = 'Loading logs...';
+      loadLogs(b.id);
+      $('#env-add').onclick = async () => {
+        const key = $('#env-key').value.trim(), val = $('#env-val').value;
+        if (!key) { toast('Key required', false); return; }
+        try {
+          await api('/api/bots/' + b.id + '/env', { method: 'POST', body: JSON.stringify({ key, value: val }) });
+          toast('Env var saved');
+          const d = await api('/api/bots/' + b.id);
+          $('#env-key').value = ''; $('#env-val').value = '';
+          refreshEnv(b.id);
+        } catch (e) { toast(e.message, false); }
+      };
+      const lr = $('#logs-refresh');
+      lr.onclick = () => { lr.querySelector('i').classList.add('spin'); loadLogs(b.id).finally(() => lr.querySelector('i').classList.remove('spin')); };
+      const st = $('#btn-stop'), stt = $('#btn-start'), rs = $('#btn-restart'), dl = $('#btn-delete');
+      st && (st.onclick = () => doModalAction(b, 'stop'));
+      stt && (stt.onclick = () => doModalAction(b, 'start'));
+      rs && (rs.onclick = () => doModalAction(b, 'restart'));
+      dl && (dl.onclick = async () => {
+        if (!confirm('Delete bot #' + b.id + ' permanently? This cannot be undone.')) return;
+        try { await api('/api/bots/' + b.id, { method: 'DELETE' }); toast('Bot deleted'); closeModal(); loadBots(); }
+        catch (e) { toast(e.message, false); }
+      });
+    }
+
+    async function doModalAction(b, act) {
+      try {
+        await api('/api/bots/' + b.id + '/' + act, { method: 'POST' });
+        toast(act.charAt(0).toUpperCase() + act.slice(1) + ' done');
+        const data = await api('/api/bots/' + b.id);
+        openModal(data.bot);
+      } catch (e) { toast(e.message, false); }
+    }
+
+    async function loadLogs(botId) {
+      try {
+        const data = await api('/api/bots/' + botId + '/logs');
+        $('#logs').textContent = data.logs || (data.running ? 'Container is running with no output yet.' : 'Bot is not running.');
+      } catch (e) { $('#logs').textContent = 'Failed to load logs: ' + e.message; }
+    }
+
+    async function refreshEnv(botId) {
+      try { const d = await api('/api/bots/' + botId + '/env'); renderEnvKeys(d.keys); }
+      catch (e) { toast(e.message, false); }
+    }
+    function renderEnvKeys(keys) {
+      const el = $('#env-list');
+      el.innerHTML = keys.length ? keys.map(k => `
+        <div class="flex items-center justify-between bg-surface-2 border border-white/5 rounded-lg px-3 py-2">
+          <span class="font-mono text-sm text-white">${k}</span>
+          <span class="text-gray-500 font-mono text-xs">••••••••</span>
+        </div>`).join('') : '<p class="text-sm text-gray-500">No env vars set.</p>';
+    }
+
+    function closeModal() { $('#modal').classList.add('hidden'); }
+    document.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeModal));
+
+    $('#bots-list').addEventListener('click', async e => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const id = btn.dataset.id, act = btn.dataset.act;
+      if (act === 'start' || act === 'stop') action(id, act);
+      else if (act === 'manage') {
+        try { const d = await api('/api/bots/' + id); openModal(d.bot); }
+        catch (err) { toast(err.message, false); }
+      }
+    });
+
+    async function login() {
+      const code = $('#code').value.trim();
+      const err = $('#login-error');
+      err.classList.add('hidden');
+      if (code.length !== 6) { err.textContent = 'Enter the 6-digit code.'; err.classList.remove('hidden'); return; }
+      try {
+        const d = await api('/api/login', { method: 'POST', body: JSON.stringify({ code }) });
+        TOKEN = d.token;
+        localStorage.setItem('hb_token', TOKEN);
+        $('#code').value = '';
+        showView('dashboard');
+        loadBots();
+      } catch (e) {
+        err.textContent = e.message; err.classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      TOKEN = null;
+      localStorage.removeItem('hb_token');
+      showView('login');
+    }
+
+    $('#login-btn').onclick = login;
+    $('#code').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    $('#logout-btn').onclick = logout;
+    $('#refresh-btn').onclick = loadBots;
+
+    // init
+    if (TOKEN) { showView('dashboard'); loadBots(); } else { showView('login'); }
+  </script>
+</body>
+</html>

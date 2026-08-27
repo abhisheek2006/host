@@ -12,6 +12,7 @@ import os
 import sys
 import uuid
 import time
+import secrets
 import shutil
 import logging
 import threading
@@ -31,7 +32,7 @@ from pyrogram import Client, enums, filters, types
 
 from config import (
     BOT_TOKEN, API_ID, API_HASH, OWNER_ID, ADMIN_IDS, YOUR_USERNAME,
-    UPDATE_CHANNEL, A4F_API_URL, A4F_API_KEY, A4F_MODEL,
+    UPDATE_CHANNEL, A4F_API_URL, A4F_API_KEY, A4F_MODEL, WEB_URL,
     MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, MAX_MEMORY, MAX_CPUS, MAX_PIDS,
     FREE_USER_LIMIT, SUBSCRIBED_USER_LIMIT, ADMIN_LIMIT, OWNER_LIMIT,
     BOT_START_TIME, RUNTIME_DIR, ALLOWED_EXTENSIONS, DOCKER_IMAGE, logger,
@@ -42,7 +43,8 @@ from database import (
     db_save_subscription, db_remove_subscription, db_load_subscriptions,
     db_add_active_user, db_load_active_users, db_add_admin, db_remove_admin,
     db_load_admins, db_pending_count, db_get_pending_bots, db_get_approved_stopped,
-    db_count_approved,
+    db_count_approved, db_save_login_code, db_get_login_code, db_delete_login_code,
+    db_delete_login_code_expired,
 )
 from r2_storage import r2_upload, r2_download, r2_delete
 import database
@@ -534,6 +536,7 @@ async def cmd_help(client: Client, message: types.Message) -> None:
         "/start - Main menu\n"
         "/bots - List your bots\n"
         "/env <bot_id> - View environment variables\n"
+        "/web_login - Get a code for the web dashboard\n"
         "/help - This help\n\n"
         "Upload `.py` or `.zip` to host.\n"
         "All files need admin approval.",
@@ -591,6 +594,28 @@ async def cmd_ping(client: Client, message: types.Message) -> None:
     msg = await message.reply_text("Pong!")
     lat = round((time.time() - start_t) * 1000, 2)
     await msg.edit_text(f"Pong!\nLatency: {lat} ms\nUptime: {get_uptime()}")
+
+
+@app.on_message(filters.command("web_login") & filters.private)
+async def cmd_web_login(client: Client, message: types.Message) -> None:
+    """Generate a one-time login code for the web dashboard."""
+    uid = message.from_user.id
+    if bot_locked and not is_admin(uid):
+        await message.reply_text("🔒 Bot locked by admin. Try later.")
+        return
+
+    code = f"{secrets.randbelow(1000000):06d}"
+    db_delete_login_code_expired()
+    db_save_login_code(uid, code, datetime.utcnow() + timedelta(minutes=5))
+
+    await message.reply_text(
+        f"🔑 **Web Dashboard Login**\n\n"
+        f"Your one-time login code:\n\n"
+        f"`{code}`\n\n"
+        f"Open the dashboard and enter this code:\n"
+        f"{WEB_URL}/dashboard\n\n"
+        f"⏱️ Code expires in 5 minutes and can only be used once."
+    )
 
 
 @app.on_message(filters.command("cancel") & filters.private)
@@ -798,7 +823,7 @@ async def handle_document(client: Client, message: types.Message) -> None:
 # ---------------------------------------------------------------------------
 
 
-@app.on_message(filters.private & ~filters.command(["start", "help", "bots", "env", "mpx", "pending", "ping", "cancel"]))
+@app.on_message(filters.private & ~filters.command(["start", "help", "bots", "env", "mpx", "pending", "ping", "cancel", "web_login"]))
 async def handle_text(client: Client, message: types.Message) -> None:
     uid = message.from_user.id
     text = (message.text or "").strip()

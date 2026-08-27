@@ -12,11 +12,12 @@ subs_col = None  # type: ignore[assignment]
 active_col = None  # type: ignore[assignment]
 admins_col = None  # type: ignore[assignment]
 envs_col = None  # type: ignore[assignment]
+login_col = None  # type: ignore[assignment]
 _counters_col = None  # type: ignore[assignment]
 
 
 def init_db() -> None:
-    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, _counters_col
+    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, _counters_col
     try:
         mongo_client = MongoClient(
             MONGO_URI,
@@ -36,6 +37,7 @@ def init_db() -> None:
     active_col = db["active_users"]
     admins_col = db["admins"]
     envs_col = db["bot_env"]
+    login_col = db["login_codes"]
     _counters_col = db["counters"]
 
     bots_col.create_index([("user_id", ASCENDING)])
@@ -203,3 +205,27 @@ def db_get_approved_stopped() -> list[dict]:
 
 def db_count_approved() -> int:
     return bots_col.count_documents({"approval": "approved"})
+
+
+# --- Web dashboard login codes ---
+
+def db_save_login_code(user_id: int, code: str, expires_at: datetime) -> None:
+    """Store a one-time login code for the web dashboard."""
+    login_col.update_one(
+        {"user_id": user_id},
+        {"$set": {"user_id": user_id, "code": code, "expires_at": expires_at.isoformat()}},
+        upsert=True,
+    )
+
+
+def db_get_login_code(user_id: int) -> dict | None:
+    return login_col.find_one({"user_id": user_id}, {"_id": 0, "code": 1, "expires_at": 1})
+
+
+def db_delete_login_code(user_id: int) -> None:
+    login_col.delete_one({"user_id": user_id})
+
+
+def db_delete_login_code_expired() -> None:
+    """Remove expired login codes (housekeeping)."""
+    login_col.delete_many({"expires_at": {"$lt": datetime.utcnow().isoformat()}})

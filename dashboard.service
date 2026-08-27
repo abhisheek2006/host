@@ -1,0 +1,17 @@
+[Unit]
+Description=HostBot Web Dashboard
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/hosting-bot
+Environment=DASHBOARD_PORT=8000
+Environment=DASHBOARD_HOST=0.0.0.0
+ExecStart=/home/ubuntu/hosting-bot/venv/bin/python /home/ubuntu/hosting-bot/web_dashboard.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

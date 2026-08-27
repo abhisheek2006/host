@@ -52,6 +52,9 @@ ADMIN_IDS.add(OWNER_ID)
 YOUR_USERNAME = os.environ.get("YOUR_USERNAME", "@admin")
 UPDATE_CHANNEL = os.environ.get("UPDATE_CHANNEL", "")
 
+# Web dashboard URL (shown to users when logging in to the dashboard)
+WEB_URL = os.environ.get("WEB_URL", "http://localhost:8000")
+
 # --- AI ---
 A4F_API_URL = os.environ.get("A4F_API_URL", "")
 A4F_API_KEY = os.environ.get("A4F_API_KEY", "")

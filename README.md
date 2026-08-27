@@ -144,8 +144,39 @@ python bot.py
 | `/start` | Everyone | Main menu with inline buttons |
 | `/bots` | Everyone | List your bots with status |
 | `/env <bot_id>` | Owner/Admin | View encrypted env variables |
+| `/web_login` | Everyone | Get a one-time code for the web dashboard |
 | `/help` | Everyone | Help text |
 | `/cancel` | Everyone | Cancel current action |
 | `/ping` | Everyone | Latency check |
 | `/mpx <query>` | Everyone | AI chat (A4F API) |
 | `/pending` | Admin | List bots awaiting approval |
+
+## Web Dashboard
+
+A self-hosted web dashboard runs on the VPS (Flask) sharing the same MongoDB + Docker
+as the Telegram bot. Users can log in with a one-time code, view their bots, edit
+environment variables, start/stop/restart, view live logs, and delete bots.
+
+**Login flow**
+1. User sends `/web_login` to the Telegram bot → gets a 6-digit code.
+2. User opens `WEB_URL/dashboard` and enters the code.
+3. A signed session token is issued; the code is single-use and expires in 5 minutes.
+
+**Run the dashboard** (already configured via `dashboard.service`):
+```bash
+python web_dashboard.py   # serves http://0.0.0.0:8000
+```
+
+Set `WEB_URL` in `.env` to the public URL/IP of your dashboard.
+
+**API endpoints** (all JSON, authenticated via `Authorization: Bearer <token>`):
+- `POST /api/login` `{code}` → `{token, user_id}`
+- `GET /api/bots` → list of the user's bots
+- `GET /api/bots/<id>` → single bot
+- `POST /api/bots/<id>/start|stop|restart`
+- `GET /api/bots/<id>/logs`
+- `GET /api/bots/<id>/env`, `POST /api/bots/<id>/env {key,value}`, `DELETE /api/bots/<id>/env/<key>`
+- `DELETE /api/bots/<id>`
+
+> **Note:** The static landing page (`web/`) still deploys to Vercel. The dashboard
+> itself is served from the VPS, so point users to `WEB_URL/dashboard`.
