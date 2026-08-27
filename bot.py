@@ -58,8 +58,8 @@ from env_manager import (
     detect_missing_module, map_module_to_package,
 )
 from docker_manager import (
-    make_container_name, docker_run, docker_stop, docker_exists, docker_logs,
-    docker_running,
+    build_custom_image, make_container_name, docker_run, docker_stop,
+    docker_exists, docker_logs, docker_running,
 )
 
 # ---------------------------------------------------------------------------
