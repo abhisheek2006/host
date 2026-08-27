@@ -40,7 +40,8 @@ def docker_run(
     """Start a Docker container. Returns container ID or raises."""
     install_parts: list[str] = []
     image = HOSTBOT_IMAGE
-    entry_cmd = "python bot.py"
+    # `-u` = unbuffered output so the bot's runtime logs show up in docker logs
+    entry_cmd = "python -u bot.py"
 
     if file_type == "js":
         image = NODE_IMAGE
