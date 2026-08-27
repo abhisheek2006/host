@@ -282,6 +282,135 @@ def reply_keyboard_kb(user_id: int) -> types.ReplyKeyboardMarkup:
     return kb
 
 
+USER_MENU_LABELS = {
+    "📤 Upload File": "upload",
+    "📂 My Bots": "mybots",
+    "⚡ Bot Speed": "speed",
+    "📊 Statistics": "stats",
+    "🤖 MPX AI": "mpx_ai",
+    "📞 Contact Owner": "contact",
+    "⏱ Uptime": "uptime",
+    "💳 Subscriptions": "subscription",
+    "📢 Broadcast": "broadcast",
+    "👑 Admin Panel": "admin_panel",
+}
+
+async def _route_user_menu(client: Client, message: types.Message, label: str) -> bool:
+    """Handle a reply-keyboard (user menu) button press. Returns True if handled."""
+    action = USER_MENU_LABELS.get(label)
+    if not action:
+        return False
+    uid = message.from_user.id
+
+    if action == "upload":
+        limit = get_user_file_limit(uid)
+        count = get_user_file_count(uid)
+        if count >= limit:
+            lim = "Unlimited" if limit == float("inf") else str(limit)
+            await message.reply_text(f"Limit reached ({count}/{lim}).")
+            return True
+        await message.reply_text("Send your `.py` or `.zip` file.\n\n⚠️ **Admin approval required.**")
+        return True
+
+    elif action == "mybots":
+        bots = db_get_user_bots(uid)
+        if not bots:
+            await message.reply_text("📂 **Your Bots**\n\nNo bots yet. Upload one with the 📤 Upload File button.")
+            return True
+        text = "📂 **Your Bots**\n\n"
+        kb_rows: list[list[types.InlineKeyboardButton]] = []
+        for b in bots:
+            icon = "🟢" if b["status"] == "running" else "🔴"
+            aicon = "✅" if b["approval"] == "approved" else "⏳" if b["approval"] == "pending" else "❌"
+            text += f"{icon} `{b['filename']}` ({b['file_type']}) {aicon}\n"
+            kb_rows.append(
+                [types.InlineKeyboardButton(f"{aicon} {b['filename']}", callback_data=f"sbot:{b['id']}")]
+            )
+        kb_rows.append([types.InlineKeyboardButton("🔙 Back", callback_data="back_main")])
+        await message.reply_text(text, reply_markup=types.InlineKeyboardMarkup(kb_rows))
+        return True
+
+    elif action == "speed":
+        status = "Locked" if bot_locked else "Unlocked"
+        level = "Owner" if uid == OWNER_ID else "Admin" if uid in admin_ids else "Premium" if uid in user_subscriptions else "Free"
+        msg = f"⚡ **Bot Speed**\n\nStatus: {status}\nLevel: {level}"
+        if is_admin(uid):
+            msg += f"\n📋 Pending: {db_pending_count()}"
+        await message.reply_text(msg, reply_markup=main_menu_kb(uid))
+        return True
+
+    elif action == "stats":
+        total = len(active_users)
+        total_files = sum(len(v) for v in user_files.values())
+        running = sum(1 for b in db_get_user_bots(uid) if b["status"] == "running")
+        msg = f"📊 **Statistics**\n\nTotal Users: {total}\nTotal Files: {total_files}\n"
+        if is_admin(uid):
+            msg += f"✅ Approved: {db_count_approved()}\n⏳ Pending: {db_pending_count()}\n🔒 Locked: {'Yes' if bot_locked else 'No'}\n"
+        msg += f"Your Running: {running}"
+        await message.reply_text(msg, reply_markup=main_menu_kb(uid))
+        return True
+
+    elif action == "mpx_ai":
+        await message.reply_text("Send your query using /mpx command:\n`/mpx What is AI?`")
+        return True
+
+    elif action == "contact":
+        if YOUR_USERNAME:
+            uname = YOUR_USERNAME.lstrip("@")
+            await message.reply_text(f"📞 Contact: https://t.me/{uname}")
+        else:
+            await message.reply_text("Contact info not set.")
+        return True
+
+    elif action == "uptime":
+        await message.reply_text(f"⏱ Uptime: {get_uptime()}")
+        return True
+
+    elif action == "subscription":
+        if not is_admin(uid):
+            await message.reply_text("Admin only.")
+            return True
+        await message.reply_text(
+            "💳 **Subscription Management**",
+            reply_markup=types.InlineKeyboardMarkup(
+                [
+                    [types.InlineKeyboardButton("➕ Add Sub", callback_data="add_sub"),
+                     types.InlineKeyboardButton("➖ Remove Sub", callback_data="rm_sub")],
+                    [types.InlineKeyboardButton("🔍 Check Sub", callback_data="check_sub")],
+                    [types.InlineKeyboardButton("🔙 Back", callback_data="back_main")],
+                ]
+            ),
+        )
+        return True
+
+    elif action == "broadcast":
+        if not is_admin(uid):
+            await message.reply_text("Admin only.")
+            return True
+        await message.reply_text("📢 Send the message to broadcast.\n/cancel to abort. (Reply to this message)")
+        return True
+
+    elif action == "admin_panel":
+        if not is_admin(uid):
+            await message.reply_text("Admin only.")
+            return True
+        kb = types.InlineKeyboardMarkup(
+            [
+                [types.InlineKeyboardButton("📋 Pending Files", callback_data="view_pending")],
+                [types.InlineKeyboardButton("💳 Subscriptions", callback_data="subscription")],
+                [types.InlineKeyboardButton("📢 Broadcast", callback_data="broadcast")],
+                [types.InlineKeyboardButton("🟢 Run All Bots", callback_data="run_all")],
+                [types.InlineKeyboardButton("🔒 Lock Bot" if not bot_locked else "🔓 Unlock Bot",
+                                            callback_data="lock_bot" if not bot_locked else "unlock_bot")],
+                [types.InlineKeyboardButton("🔙 Back", callback_data="back_main")],
+            ]
+        )
+        await message.reply_text("👑 **Admin Panel**", reply_markup=kb)
+        return True
+
+    return False
+
+
 def bot_control_kb(bot_id: int, is_running: bool, approval: str) -> types.InlineKeyboardMarkup:
     aicon = "✅" if approval == "approved" else "⏳" if approval == "pending" else "❌"
     if is_running:
@@ -568,6 +697,22 @@ async def cmd_start(client: Client, message: types.Message) -> None:
     active_users.add(uid)
     awaiting_input.pop(uid, None)
 
+    # Fetch richer user details (bio + profile photo) 
+    bio = "No bio"
+    photo = None
+    try:
+        chat = await app.get_chat(uid)
+        bio = chat.bio or "No bio"
+    except Exception as e:
+        logger.error("Fetch bio for %d: %s", uid, e)
+    try:
+        photos = app.get_chat_photos(uid, limit=1)
+        async for p in photos:
+            photo = p.file_id
+            break
+    except Exception as e:
+        logger.error("Fetch profile photo for %d: %s", uid, e)
+
     # Notify owner about new user
     if is_new:
         try:
@@ -578,15 +723,27 @@ async def cmd_start(client: Client, message: types.Message) -> None:
                 f"👤 **New User!**\n\n"
                 f"Name: {fname}\n"
                 f"Username: @{uname}\n"
+                f"Bio: {bio}\n"
                 f"ID: `{uid}`",
             )
         except Exception as e:
             logger.error("Notify owner new user %d: %s", uid, e)
 
-    await message.reply_text(
-        _welcome_text(uid, message.from_user.first_name, message.from_user.username),
-        reply_markup=main_menu_kb(uid),
-    )
+    welcome = _welcome_text(uid, message.from_user.first_name, message.from_user.username)
+    welcome += f"\n📝 **Bio:** {bio}"
+
+    if photo:
+        try:
+            await message.reply_photo(
+                photo,
+                caption=welcome,
+                reply_markup=main_menu_kb(uid),
+            )
+        except Exception as e:
+            logger.error("Send welcome photo for %d: %s", uid, e)
+            await message.reply_text(welcome, reply_markup=main_menu_kb(uid))
+    else:
+        await message.reply_text(welcome, reply_markup=main_menu_kb(uid))
     await message.reply_text(
         "Use the buttons below or type commands.",
         reply_markup=reply_keyboard_kb(uid),
@@ -893,6 +1050,10 @@ async def handle_text(client: Client, message: types.Message) -> None:
     uid = message.from_user.id
     text = (message.text or "").strip()
     if not text:
+        return
+
+    # User menu (reply keyboard) routing
+    if await _route_user_menu(client, message, text):
         return
 
     # Handle awaiting state

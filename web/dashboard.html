@@ -232,7 +232,10 @@
         <div class="mb-5">
           <div class="flex items-center justify-between mb-2">
             <p class="text-xs text-gray-400 font-semibold">Logs</p>
-            <button id="logs-refresh" class="btn-ghost px-3 py-1 rounded text-xs inline-flex items-center gap-1"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
+            <div class="flex items-center gap-2">
+              <button id="logs-copy" class="btn-ghost px-3 py-1 rounded text-xs inline-flex items-center gap-1"><i class="ph-bold ph-copy"></i> Copy</button>
+              <button id="logs-refresh" class="btn-ghost px-3 py-1 rounded text-xs inline-flex items-center gap-1"><i class="ph-bold ph-arrows-clockwise"></i> Refresh</button>
+            </div>
           </div>
           <pre id="logs" class="bg-surface-0 border border-white/5 rounded-lg p-4 text-xs font-mono text-gray-400 h-48 overflow-auto whitespace-pre-wrap"></pre>
         </div>
@@ -262,6 +265,14 @@
       };
       const lr = $('#logs-refresh');
       lr.onclick = () => { lr.querySelector('i').classList.add('spin'); loadLogs(b.id).finally(() => lr.querySelector('i').classList.remove('spin')); };
+      const lc = $('#logs-copy');
+      lc.onclick = () => {
+        const text = $('#logs').textContent;
+        navigator.clipboard.writeText(text).then(
+          () => { toast('Logs copied'); lc.querySelector('i').className = 'ph-bold ph-check'; setTimeout(() => { lc.querySelector('i').className = 'ph-bold ph-copy'; }, 1500); },
+          () => toast('Failed to copy', false)
+        );
+      };
       const st = $('#btn-stop'), stt = $('#btn-start'), rs = $('#btn-restart'), dl = $('#btn-delete');
       st && (st.onclick = () => doModalAction(b, 'stop'));
       stt && (stt.onclick = () => doModalAction(b, 'start'));
