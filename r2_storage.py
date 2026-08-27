@@ -28,6 +28,21 @@ def r2_download(key: str) -> bytes:
     return resp["Body"].read()
 
 
+def r2_upload_profile(user_id: int, data: bytes, content_type: str) -> str:
+    key = f"profiles/{user_id}/photo"
+    kwargs = {"Bucket": R2_BUCKET, "Key": key, "Body": data}
+    if content_type:
+        kwargs["ContentType"] = content_type
+    _s3_client().put_object(**kwargs)
+    return key
+
+
+def r2_delete_profile(user_id: int) -> str | None:
+    key = f"profiles/{user_id}/photo"
+    _s3_client().delete_object(Bucket=R2_BUCKET, Key=key)
+    return key
+
+
 def r2_delete(key: str) -> None:
     _s3_client().delete_object(Bucket=R2_BUCKET, Key=key)
     logger.info("R2 delete key=%s", key)

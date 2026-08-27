@@ -13,11 +13,12 @@ active_col = None  # type: ignore[assignment]
 admins_col = None  # type: ignore[assignment]
 envs_col = None  # type: ignore[assignment]
 login_col = None  # type: ignore[assignment]
+profiles_col = None  # type: ignore[assignment]
 _counters_col = None  # type: ignore[assignment]
 
 
 def init_db() -> None:
-    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, _counters_col
+    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, profiles_col, _counters_col
     try:
         mongo_client = MongoClient(
             MONGO_URI,
@@ -38,6 +39,7 @@ def init_db() -> None:
     admins_col = db["admins"]
     envs_col = db["bot_env"]
     login_col = db["login_codes"]
+    profiles_col = db["profiles"]
     _counters_col = db["counters"]
 
     bots_col.create_index([("user_id", ASCENDING)])
@@ -229,3 +231,27 @@ def db_delete_login_code(user_id: int) -> None:
 def db_delete_login_code_expired() -> None:
     """Remove expired login codes (housekeeping)."""
     login_col.delete_many({"expires_at": {"$lt": datetime.utcnow().isoformat()}})
+
+
+# --- User profiles (for the web dashboard) ---
+
+def db_save_profile(user_id: int, first_name: str, username: str | None, bio: str, photo_key: str | None) -> None:
+    """Store a user's Telegram profile details for the dashboard."""
+    profiles_col.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "user_id": user_id,
+                "first_name": first_name,
+                "username": username,
+                "bio": bio,
+                "photo_key": photo_key,
+                "updated_at": datetime.utcnow().isoformat(),
+            }
+        },
+        upsert=True,
+    )
+
+
+def db_get_profile(user_id: int) -> dict | None:
+    return profiles_col.find_one({"user_id": user_id}, {"_id": 0})

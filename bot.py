@@ -45,9 +45,9 @@ from database import (
     db_add_active_user, db_load_active_users, db_add_admin, db_remove_admin,
     db_load_admins, db_pending_count, db_get_pending_bots, db_get_approved_stopped,
     db_count_approved, db_save_login_code, db_get_login_code, db_delete_login_code,
-    db_delete_login_code_expired,
+    db_delete_login_code_expired, db_save_profile,
 )
-from r2_storage import r2_upload, r2_download, r2_delete
+from r2_storage import r2_upload, r2_download, r2_delete, r2_upload_profile
 import database
 from security import encrypt_value, decrypt_value, generate_key
 from env_manager import (
@@ -829,6 +829,29 @@ async def cmd_web_login(client: Client, message: types.Message) -> None:
     code = f"{secrets.randbelow(1000000):06d}"
     db_delete_login_code_expired()
     db_save_login_code(uid, code, datetime.utcnow() + timedelta(minutes=5))
+
+    # Fetch + persist the user's Telegram profile for the dashboard profile section
+    username = message.from_user.username
+    first_name = message.from_user.first_name
+    bio = "No bio"
+    photo_key = None
+    try:
+        chat = await app.get_chat(uid)
+        bio = chat.bio or "No bio"
+    except Exception as e:
+        logger.error("web_login fetch bio %d: %s", uid, e)
+    try:
+        photos = app.get_chat_photos(uid, limit=1)
+        async for p in photos:
+            media = await client.download_media(p.file_id, in_memory=True)
+            photo_key = r2_upload_profile(uid, media.getvalue(), p.mime_type or "image/jpeg")
+            break
+    except Exception as e:
+        logger.error("web_login fetch photo %d: %s", uid, e)
+    try:
+        db_save_profile(uid, first_name, username, bio, photo_key)
+    except Exception as e:
+        logger.error("web_login save profile %d: %s", uid, e)
 
     await message.reply_text(
         f"🔑 **Web Dashboard Login**\n\n"

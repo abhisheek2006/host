@@ -12,7 +12,7 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, Response
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 import database
@@ -20,7 +20,7 @@ from config import ENV_ENCRYPTION_KEY, RUNTIME_DIR, WEB_URL, logger
 from docker_manager import docker_exists, docker_logs
 from env_manager import get_env_keys, decrypt_env_vars
 from security import encrypt_value
-from r2_storage import r2_delete
+from r2_storage import r2_delete, r2_download
 
 WEB_DIR = Path(__file__).parent / "web"
 
@@ -114,7 +114,34 @@ def api_me():
         data = _require_user()
     except PermissionError:
         return jsonify({"error": "Not authenticated"}), 401
-    return jsonify({"user_id": data["uid"]})
+    uid = data["uid"]
+    profile = database.db_get_profile(uid) or {}
+    return jsonify(
+        {
+            "user_id": uid,
+            "first_name": profile.get("first_name"),
+            "username": profile.get("username"),
+            "bio": profile.get("bio"),
+            "has_photo": bool(profile.get("photo_key")),
+        }
+    )
+
+
+@app.get("/api/me/photo")
+def api_me_photo():
+    try:
+        data = _require_user()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    profile = database.db_get_profile(data["uid"]) or {}
+    photo_key = profile.get("photo_key")
+    if not photo_key:
+        return jsonify({"error": "No photo"}), 404
+    try:
+        body = r2_download(photo_key)
+    except Exception:
+        return jsonify({"error": "Photo unavailable"}), 404
+    return Response(body, mimetype="image/jpeg")
 
 
 def _owned_bot(bot_id: int, user_id: int) -> dict | None:
