@@ -7,8 +7,9 @@ Wants=network-online.target
 Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/hosting-bot
-Environment=DASHBOARD_PORT=8000
+Environment=DASHBOARD_PORT=9090
 Environment=DASHBOARD_HOST=0.0.0.0
+Environment=WEB_URL=http://13.60.45.38:9090
 ExecStart=/home/ubuntu/hosting-bot/venv/bin/python /home/ubuntu/hosting-bot/web_dashboard.py
 Restart=always
 RestartSec=5

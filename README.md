@@ -164,7 +164,7 @@ environment variables, start/stop/restart, view live logs, and delete bots.
 
 **Run the dashboard** (already configured via `dashboard.service`):
 ```bash
-python web_dashboard.py   # serves http://0.0.0.0:8000
+python web_dashboard.py   # serves http://0.0.0.0:9090 (DASHBOARD_PORT)
 ```
 
 Set `WEB_URL` in `.env` to the public URL/IP of your dashboard.
