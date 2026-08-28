@@ -126,6 +126,17 @@ def get_uptime() -> str:
     return f"{days}d {hours}h {minutes}m {seconds}s"
 
 
+async def _api_latency_ms(client: Client) -> float:
+    """Measure real round-trip latency to Telegram's DC (in ms)."""
+    from pyrogram.raw import functions
+    t0 = time.time()
+    try:
+        await client.invoke(functions.help.GetNearestDc())
+    except Exception:
+        pass
+    return round((time.time() - t0) * 1000, 2)
+
+
 def is_owner(user_id: int) -> bool:
     return user_id == OWNER_ID
 
@@ -366,7 +377,7 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
 
 def reply_keyboard_kb(user_id: int) -> types.ReplyKeyboardMarkup:
     """Build a row_width=2 ReplyKeyboard with grouped text buttons."""
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, is_persistent=True)
 
     def row(*labels: str) -> None:
         kb.add(*(types.KeyboardButton(l) for l in labels))
@@ -431,9 +442,10 @@ async def _route_user_menu(client: Client, message: types.Message, label: str) -
         return True
 
     elif action == "speed":
+        lat = await _api_latency_ms(client)
         status = "Locked" if bot_locked else "Unlocked"
         level = "Owner" if uid == OWNER_ID else "Admin" if uid in admin_ids else "Premium" if uid in user_subscriptions else "Free"
-        msg = f"⚡ **Bot Speed**\n\nStatus: {status}\nLevel: {level}"
+        msg = f"⚡ **Bot Speed**\n\nAPI: `{lat} ms`\nStatus: {status}\nLevel: {level}"
         if is_admin(uid):
             msg += f"\n📋 Pending: {db_pending_count()}"
         await message.reply_text(msg, reply_markup=main_menu_kb(uid))
@@ -1478,11 +1490,10 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
         await cb.message.edit_text(text, reply_markup=types.InlineKeyboardMarkup(kb_rows))
 
     elif action == "speed":
-        t0 = time.time()
-        lat = round((time.time() - t0) * 1000, 2)
+        lat = await _api_latency_ms(client)
         status = "Locked" if bot_locked else "Unlocked"
         level = "Owner" if uid == OWNER_ID else "Admin" if uid in admin_ids else "Premium" if uid in user_subscriptions else "Free"
-        msg = f"⚡ **Bot Speed**\n\nAPI: {lat} ms\nStatus: {status}\nLevel: {level}"
+        msg = f"⚡ **Bot Speed**\n\nAPI: `{lat} ms`\nStatus: {status}\nLevel: {level}"
         if is_admin(uid):
             msg += f"\n📋 Pending: {db_pending_count()}"
         await cb.answer()
