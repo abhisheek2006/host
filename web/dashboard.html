@@ -491,7 +491,7 @@ Please try again later. Thank you for your patience!</textarea>
         $('#profile-bio').textContent = me.bio || '';
         const img = $('#profile-photo');
         if (me.has_photo) {
-          img.src = '/api/me/photo?t=' + Date.now();
+          img.src = '/api/me/photo?token=' + encodeURIComponent(TOKEN || '') + '&t=' + Date.now();
           img.classList.remove('hidden');
           $('#profile-placeholder').classList.add('hidden');
         } else {

@@ -38,10 +38,17 @@ def _make_token(user_id: int) -> str:
 
 
 def _read_token() -> dict | None:
+    # Prefer the Authorization header, fall back to a `?token=` query param.
+    # The query-param form is used by <img>/<link> requests, which cannot set
+    # an Authorization header (e.g. the dashboard profile photo).
     header = request.headers.get("Authorization", "")
-    if not header.startswith("Bearer "):
+    token = ""
+    if header.startswith("Bearer "):
+        token = header[7:].strip()
+    elif request.args.get("token"):
+        token = request.args.get("token", "").strip()
+    if not token:
         return None
-    token = header[7:].strip()
     try:
         data = _serializer.loads(token, max_age=_TTL)
         return data if isinstance(data, dict) else None

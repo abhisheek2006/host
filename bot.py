@@ -296,6 +296,9 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
     rows.append(
         [types.InlineKeyboardButton("🤖 MPX AI", callback_data="mpx_ai")]
     )
+    rows.append(
+        [types.InlineKeyboardButton("🌐 Web Dashboard", callback_data="web_login_btn")]
+    )
 
     if is_admin(user_id):
         pending = db_pending_count()
@@ -898,21 +901,20 @@ async def cmd_ping(client: Client, message: types.Message) -> None:
     await msg.edit_text(f"Pong!\nLatency: {lat} ms\nUptime: {get_uptime()}")
 
 
-@app.on_message(filters.command("web_login") & filters.private)
-async def cmd_web_login(client: Client, message: types.Message) -> None:
-    """Generate a one-time login code for the web dashboard."""
-    uid = message.from_user.id
+async def _do_web_login(client: Client, uid: int, first_name: str, username: str | None) -> tuple[bool, str | None]:
+    """Shared logic for /web_login and the Web Dashboard button.
+
+    Generates a one-time code, saves the user's profile + photo, and returns
+    (ok, code). Returns (False, error_text) if the bot is locked.
+    """
     if bot_locked and not is_admin(uid):
-        await message.reply_text("🔒 Bot locked by admin. Try later.")
-        return
+        return False, "🔒 Bot locked by admin. Try later."
 
     code = f"{secrets.randbelow(1000000):06d}"
     db_delete_login_code_expired()
     db_save_login_code(uid, code, datetime.utcnow() + timedelta(minutes=5))
 
     # Fetch + persist the user's Telegram profile for the dashboard profile section
-    username = message.from_user.username
-    first_name = message.from_user.first_name
     bio = "No bio"
     photo_key = None
     try:
@@ -933,6 +935,17 @@ async def cmd_web_login(client: Client, message: types.Message) -> None:
     except Exception as e:
         logger.error("web_login save profile %d: %s", uid, e)
 
+    return True, code
+
+
+@app.on_message(filters.command("web_login") & filters.private)
+async def cmd_web_login(client: Client, message: types.Message) -> None:
+    """Generate a one-time login code for the web dashboard."""
+    uid = message.from_user.id
+    ok, code = await _do_web_login(client, uid, message.from_user.first_name, message.from_user.username)
+    if not ok:
+        await message.reply_text(code)
+        return
     await message.reply_text(
         f"🔑 **Web Dashboard Login**\n\n"
         f"Your one-time login code:\n\n"
@@ -1406,7 +1419,7 @@ async def cb_router(client: Client, cb: types.CallbackQuery) -> None:
         )
 
 
-@app.on_callback_query(filters.regex(r"^(upload|check_files|speed|stats|back_main|uptime|mpx_ai|lock_bot|unlock_bot|subscription|broadcast|admin_panel|view_pending|run_all)$"))
+@app.on_callback_query(filters.regex(r"^(upload|check_files|speed|stats|back_main|uptime|mpx_ai|web_login_btn|lock_bot|unlock_bot|subscription|broadcast|admin_panel|view_pending|run_all)$"))
 async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
     global bot_locked
     uid = cb.from_user.id
@@ -1494,6 +1507,21 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
         await cb.message.reply_text(
             "Send your query using /mpx command:\n"
             "`/mpx What is AI?`",
+        )
+
+    elif action == "web_login_btn":
+        ok, code = await _do_web_login(client, uid, cb.from_user.first_name, cb.from_user.username)
+        if not ok:
+            await cb.answer(code if code else "Failed", show_alert=True)
+            return
+        await cb.answer()
+        await cb.message.reply_text(
+            f"🔑 **Web Dashboard Login**\n\n"
+            f"Your one-time login code:\n\n"
+            f"`{code}`\n\n"
+            f"Open the dashboard and enter this code:\n"
+            f"{WEB_URL}/dashboard\n\n"
+            f"⏱️ Code expires in 5 minutes and can only be used once."
         )
 
     elif action == "run_all":
