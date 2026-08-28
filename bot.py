@@ -898,13 +898,13 @@ async def cmd_env(client: Client, message: types.Message) -> None:
             await message.reply_text("❌ You don't have permission to access this bot.")
             return
         b = b_any
-    keys = get_env_keys(bot_id)
-    if not keys:
+    env_vars = decrypt_env_vars(bot_id)
+    if not env_vars:
         await message.reply_text("🔐 No environment variables stored for this bot.")
         return
-    masked = "\n".join(f"`{k}` = ********" for k in keys)
+    lines = "\n".join(f"`{k}` = `{v}`" for k, v in env_vars.items())
     await message.reply_text(
-        f"🔐 **Environment Variables** (Bot `{bot_id}`)\n\n{masked}",
+        f"🔐 **Environment Variables** (Bot `{bot_id}`)\n\n{lines}",
         reply_markup=env_management_kb(bot_id),
     )
 
