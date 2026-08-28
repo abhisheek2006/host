@@ -17,7 +17,8 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 import database
 from config import (
-    ENV_ENCRYPTION_KEY, RUNTIME_DIR, WEB_URL, ADMIN_OTP, OWNER_ID, ADMIN_IDS, logger,
+    ENV_ENCRYPTION_KEY, RUNTIME_DIR, WEB_URL, ADMIN_USERNAME, ADMIN_PASSWORD,
+    OWNER_ID, logger,
 )
 from docker_manager import docker_exists, docker_logs
 from env_manager import get_env_keys, decrypt_env_vars
@@ -67,19 +68,6 @@ def _require_user() -> dict:
     return data
 
 
-def _is_admin_uid(uid: int) -> bool:
-    if uid == OWNER_ID:
-        return True
-    if uid in ADMIN_IDS:
-        return True
-    try:
-        if uid in database.db_load_admins():
-            return True
-    except Exception:
-        pass
-    return False
-
-
 def _make_admin_token(user_id: int) -> str:
     return _serializer.dumps({"uid": user_id, "admin": True})
 
@@ -88,8 +76,8 @@ def _require_admin() -> dict:
     data = _read_token()
     if not data or not data.get("admin"):
         raise PermissionError("Not authenticated")
-    if not _is_admin_uid(data["uid"]):
-        raise PermissionError("Forbidden")
+    # The signed token's `admin` flag is trusted (issued only after a valid
+    # username/password login), so we don't re-check against a Telegram UID.
     return data
 
 
@@ -384,18 +372,15 @@ MAINTENANCE_NOTICE = (
 @app.post("/api/admin/login")
 def api_admin_login():
     body = request.get_json(silent=True) or {}
-    try:
-        uid = int(body.get("uid", ""))
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid Telegram UID"}), 400
-    otp = (body.get("otp") or "").strip()
-    if not _is_admin_uid(uid):
-        return jsonify({"error": "This UID is not an admin"}), 403
-    if not ADMIN_OTP:
-        return jsonify({"error": "Admin OTP is not configured on the server"}), 500
-    if otp != ADMIN_OTP:
-        return jsonify({"error": "Invalid OTP"}), 401
-    return jsonify({"token": _make_admin_token(uid), "admin": True})
+    username = (body.get("username") or "").strip()
+    password = (body.get("password") or "")
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
+    if not ADMIN_PASSWORD:
+        return jsonify({"error": "Admin password is not configured on the server"}), 500
+    if username != ADMIN_USERNAME or password != ADMIN_PASSWORD:
+        return jsonify({"error": "Invalid username or password"}), 401
+    return jsonify({"token": _make_admin_token(OWNER_ID), "admin": True})
 
 
 @app.get("/api/admin/me")
