@@ -70,6 +70,9 @@
       <button id="goto-dashboard" class="btn-ghost w-full mt-3 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98] hidden">
         <i class="ph-bold ph-arrow-right text-base"></i> Go to Dashboard
       </button>
+      <a href="/" class="btn-ghost w-full mt-3 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2">
+        <i class="ph-bold ph-arrow-left text-base"></i> Back to Home
+      </a>
     </div>
   </div>
 
@@ -86,6 +89,9 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <a href="/" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
+          <i class="ph-bold ph-arrow-left text-base"></i> Home
+        </a>
         <button id="admin-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
           <i class="ph-bold ph-shield-star text-base"></i> Admin
         </button>
@@ -303,11 +309,7 @@ Please try again later. Thank you for your patience!</textarea>
         <div class="mb-5">
           <p class="text-xs text-gray-400 font-semibold mb-2">Environment variables</p>
           <div id="env-list" class="space-y-2">
-            ${b.env_keys.length ? b.env_keys.map(k => `
-              <div class="flex items-center justify-between bg-surface-2 border border-white/5 rounded-lg px-3 py-2">
-                <span class="font-mono text-sm text-white">${k}</span>
-                <span class="text-gray-500 font-mono text-xs">••••••••</span>
-              </div>`).join('') : '<p class="text-sm text-gray-500">No env vars set.</p>'}
+            <p class="text-sm text-gray-500">Loading…</p>
           </div>
           <div class="flex gap-2 mt-3">
             <input id="env-key" placeholder="KEY" class="flex-1 bg-surface-2 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-accent/60" />
@@ -339,6 +341,7 @@ Please try again later. Thank you for your patience!</textarea>
 
       $('#logs').textContent = 'Loading logs...';
       loadLogs(b.id);
+      refreshEnv(b.id);
       $('#env-add').onclick = async () => {
         const key = $('#env-key').value.trim(), val = $('#env-val').value;
         if (!key) { toast('Key required', false); return; }
@@ -388,16 +391,56 @@ Please try again later. Thank you for your patience!</textarea>
     }
 
     async function refreshEnv(botId) {
-      try { const d = await api('/api/bots/' + botId + '/env'); renderEnvKeys(d.keys); }
+      try { const d = await api('/api/bots/' + botId + '/env'); renderEnvKeys(d.env || [], botId); }
       catch (e) { toast(e.message, false); }
     }
-    function renderEnvKeys(keys) {
+
+    function esc(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function renderEnvKeys(items, botId) {
       const el = $('#env-list');
-      el.innerHTML = keys.length ? keys.map(k => `
-        <div class="flex items-center justify-between bg-surface-2 border border-white/5 rounded-lg px-3 py-2">
-          <span class="font-mono text-sm text-white">${k}</span>
-          <span class="text-gray-500 font-mono text-xs">••••••••</span>
+      el.innerHTML = items.length ? items.map(it => `
+        <div class="bg-surface-2 border border-white/5 rounded-lg px-3 py-2">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-mono text-sm text-white">${esc(it.key)}</span>
+            <button data-del="${esc(it.key)}" class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-red-400 hover:bg-red-500/10 border border-red-500/30">
+              <i class="ph-bold ph-trash text-xs"></i> Delete
+            </button>
+          </div>
+          <div class="flex gap-2">
+            <input data-val="${esc(it.key)}" type="text" value="${esc(it.value)}" spellcheck="false"
+              class="flex-1 bg-surface-0 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-accent/60" />
+            <button data-save="${esc(it.key)}" class="btn-ghost px-3 py-2 rounded-lg text-xs">Save</button>
+          </div>
         </div>`).join('') : '<p class="text-sm text-gray-500">No env vars set.</p>';
+
+      el.querySelectorAll('button[data-del]').forEach(btn => {
+        btn.onclick = async () => {
+          const key = btn.dataset.del;
+          if (!confirm('Delete env var "' + key + '"?')) return;
+          try {
+            const d = await api('/api/bots/' + botId + '/env/' + encodeURIComponent(key), { method: 'DELETE' });
+            renderEnvKeys(d.env || [], botId);
+            toast('Deleted ' + key);
+          } catch (e) { toast(e.message, false); }
+        };
+      });
+      el.querySelectorAll('button[data-save]').forEach(btn => {
+        btn.onclick = async () => {
+          const key = btn.dataset.save;
+          const input = $('input[data-val="' + CSS.escape(key) + '"]', el);
+          if (!input) return;
+          const value = input.value;
+          try {
+            await api('/api/bots/' + botId + '/env', { method: 'POST', body: JSON.stringify({ key, value }) });
+            toast('Saved ' + key);
+          } catch (e) { toast(e.message, false); }
+        };
+      });
     }
 
     function closeModal() { $('#modal').classList.add('hidden'); }

@@ -297,8 +297,8 @@ def api_get_env(bot_id: int):
     if not b:
         return jsonify({"error": "Bot not found"}), 404
     env_vars = decrypt_env_vars(bot_id)
-    # values are masked for display; edits happen via POST
-    return jsonify({"keys": sorted(env_vars.keys())})
+    # Return the key and its actual value so the dashboard can show/edit/delete them.
+    return jsonify({"env": [{"key": k, "value": env_vars[k]} for k in sorted(env_vars.keys())]})
 
 
 @app.post("/api/bots/<int:bot_id>/env")
@@ -318,7 +318,8 @@ def api_set_env(bot_id: int):
         return jsonify({"error": "Key is required"}), 400
 
     database.db_save_env(bot_id, key, encrypt_value(str(value)))
-    return jsonify({"keys": sorted(get_env_keys(bot_id))})
+    env_vars = decrypt_env_vars(bot_id)
+    return jsonify({"env": [{"key": k, "value": env_vars[k]} for k in sorted(env_vars.keys())]})
 
 
 @app.delete("/api/bots/<int:bot_id>/env/<path:key>")
@@ -331,7 +332,8 @@ def api_delete_env(bot_id: int, key: str):
     if not b:
         return jsonify({"error": "Bot not found"}), 404
     database.db_delete_env(bot_id, key)
-    return jsonify({"keys": sorted(get_env_keys(bot_id))})
+    env_vars = decrypt_env_vars(bot_id)
+    return jsonify({"env": [{"key": k, "value": env_vars[k]} for k in sorted(env_vars.keys())]})
 
 
 @app.delete("/api/bots/<int:bot_id>")
