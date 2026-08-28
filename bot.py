@@ -365,32 +365,20 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
 
 
 def reply_keyboard_kb(user_id: int) -> types.ReplyKeyboardMarkup:
-    """Build a ReplyKeyboard with text buttons like the Railway bot."""
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    """Build a row_width=2 ReplyKeyboard with grouped text buttons."""
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+
+    def row(*labels: str) -> None:
+        kb.add(*(types.KeyboardButton(l) for l in labels))
+
+    row("📤 Upload File", "📂 My Bots")
+    row("⚡ Bot Speed", "📊 Statistics")
     if is_admin(user_id):
-        buttons = [
-            types.KeyboardButton("📤 Upload File"),
-            types.KeyboardButton("📂 My Bots"),
-            types.KeyboardButton("⚡ Bot Speed"),
-            types.KeyboardButton("📊 Statistics"),
-            types.KeyboardButton("💳 Subscriptions"),
-            types.KeyboardButton("📢 Broadcast"),
-            types.KeyboardButton("🤖 MPX AI"),
-            types.KeyboardButton("👑 Admin Panel"),
-            types.KeyboardButton("⏱ Uptime"),
-        ]
+        row("💳 Subscriptions", "📢 Broadcast")
+        row("🤖 MPX AI", "👑 Admin Panel")
     else:
-        buttons = [
-            types.KeyboardButton("📤 Upload File"),
-            types.KeyboardButton("📂 My Bots"),
-            types.KeyboardButton("⚡ Bot Speed"),
-            types.KeyboardButton("📊 Statistics"),
-            types.KeyboardButton("🤖 MPX AI"),
-            types.KeyboardButton("📞 Contact Owner"),
-            types.KeyboardButton("⏱ Uptime"),
-        ]
-    for btn in buttons:
-        kb.add(btn)
+        row("🤖 MPX AI", "📞 Contact Owner")
+    row("⏱ Uptime")
     return kb
 
 
