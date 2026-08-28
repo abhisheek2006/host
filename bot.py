@@ -1960,6 +1960,26 @@ async def _cb_env(client: Client, cb: types.CallbackQuery, uid: int, bot_id: int
 # ---------------------------------------------------------------------------
 
 
+@app.on_startup()
+async def _setup_bot_commands(client: Client) -> None:
+    """Configure the native Telegram Menu button (command list)."""
+    commands = [
+        types.BotCommand("start", "Open the main menu"),
+        types.BotCommand("bots", "List your hosted bots"),
+        types.BotCommand("web_login", "Get code for the web dashboard"),
+        types.BotCommand("mpx", "Talk to MPX AI"),
+        types.BotCommand("env", "View a bot's environment variables"),
+        types.BotCommand("help", "Show available commands"),
+    ]
+    if is_admin(OWNER_ID):
+        commands.append(types.BotCommand("pending", "Review pending file approvals"))
+    try:
+        await client.set_bot_commands(commands)
+        logger.info("Bot commands menu configured (%d commands)", len(commands))
+    except Exception as e:
+        logger.error("Failed to set bot commands menu: %s", e)
+
+
 def main() -> None:
     init_db()
     global user_subscriptions, active_users, admin_ids
