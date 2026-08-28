@@ -68,7 +68,31 @@ from docker_manager import (
 # Pyrogram Client
 # ---------------------------------------------------------------------------
 
-app = Client(
+class HostingBot(Client):
+    async def start(self):
+        await super().start()
+        await self._setup_bot_commands()
+
+    async def _setup_bot_commands(self) -> None:
+        """Configure the native Telegram Menu button (command list)."""
+        commands = [
+            types.BotCommand("start", "Open the main menu"),
+            types.BotCommand("bots", "List your hosted bots"),
+            types.BotCommand("web_login", "Get code for the web dashboard"),
+            types.BotCommand("mpx", "Talk to MPX AI"),
+            types.BotCommand("env", "View a bot's environment variables"),
+            types.BotCommand("help", "Show available commands"),
+        ]
+        if is_admin(OWNER_ID):
+            commands.append(types.BotCommand("pending", "Review pending file approvals"))
+        try:
+            await self.set_bot_commands(commands)
+            logger.info("Bot commands menu configured (%d commands)", len(commands))
+        except Exception as e:
+            logger.error("Failed to set bot commands menu: %s", e)
+
+
+app = HostingBot(
     "hosting_bot",
     api_id=API_ID,
     api_hash=API_HASH,
@@ -1958,26 +1982,6 @@ async def _cb_env(client: Client, cb: types.CallbackQuery, uid: int, bot_id: int
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-
-
-@app.on_startup()
-async def _setup_bot_commands(client: Client) -> None:
-    """Configure the native Telegram Menu button (command list)."""
-    commands = [
-        types.BotCommand("start", "Open the main menu"),
-        types.BotCommand("bots", "List your hosted bots"),
-        types.BotCommand("web_login", "Get code for the web dashboard"),
-        types.BotCommand("mpx", "Talk to MPX AI"),
-        types.BotCommand("env", "View a bot's environment variables"),
-        types.BotCommand("help", "Show available commands"),
-    ]
-    if is_admin(OWNER_ID):
-        commands.append(types.BotCommand("pending", "Review pending file approvals"))
-    try:
-        await client.set_bot_commands(commands)
-        logger.info("Bot commands menu configured (%d commands)", len(commands))
-    except Exception as e:
-        logger.error("Failed to set bot commands menu: %s", e)
 
 
 def main() -> None:
