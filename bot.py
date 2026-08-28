@@ -278,7 +278,14 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
 
     if UPDATE_CHANNEL:
         rows.append(
-            [types.InlineKeyboardButton("📢 Updates Channel", url=UPDATE_CHANNEL)]
+            [
+                types.InlineKeyboardButton("📢 Updates Channel", url=UPDATE_CHANNEL),
+                types.InlineKeyboardButton("🌐 Web Dashboard", callback_data="web_login_btn"),
+            ]
+        )
+    else:
+        rows.append(
+            [types.InlineKeyboardButton("🌐 Web Dashboard", callback_data="web_login_btn")]
         )
 
     rows.append(
@@ -295,9 +302,6 @@ def main_menu_kb(user_id: int) -> types.InlineKeyboardMarkup:
     )
     rows.append(
         [types.InlineKeyboardButton("🤖 MPX AI", callback_data="mpx_ai")]
-    )
-    rows.append(
-        [types.InlineKeyboardButton("🌐 Web Dashboard", callback_data="web_login_btn")]
     )
 
     if is_admin(user_id):
