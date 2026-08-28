@@ -108,9 +108,6 @@
         <a href="/" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
           <i class="ph-bold ph-arrow-left text-base"></i> Home
         </a>
-        <button id="admin-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
-          <i class="ph-bold ph-shield-star text-base"></i> Admin
-        </button>
         <button id="logout-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
           <i class="ph-bold ph-sign-out text-base"></i> Logout
         </button>
@@ -634,7 +631,6 @@ Please try again later. Thank you for your patience!</textarea>
     $('#refresh-btn').onclick = loadBots;
     $('#profile-refresh').onclick = loadProfile;
     const openAdmin = () => { showView('admin'); loadAdminState(); };
-    $('#admin-btn').onclick = openAdmin;
     $('#hostbot-admin-logo').onclick = openAdmin;
     $('#admin-login-btn').onclick = adminLogin;
     $('#maint-toggle').onclick = toggleMaintenance;
