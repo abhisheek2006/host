@@ -562,5 +562,9 @@
   </footer>
 
   <script src="script.js"></script>
+  <script>
+    // Visitor / page-view counter for admin analytics.
+    fetch('/api/track/pageview', { method: 'POST' }).catch(function () {});
+  </script>
 </body>
 </html>
