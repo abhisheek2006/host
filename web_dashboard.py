@@ -114,18 +114,27 @@ def index():
     return send_from_directory(WEB_DIR, "index.html")
 
 
+def _no_cache(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+
 @app.route("/dashboard")
 def dashboard():
-    return send_from_directory(WEB_DIR, "dashboard.html")
+    return _no_cache(send_from_directory(WEB_DIR, "dashboard.html"))
 
 
 @app.route("/login")
 def login_page():
-    return send_from_directory(WEB_DIR, "login.html")
+    return _no_cache(send_from_directory(WEB_DIR, "login.html"))
 
 
 @app.route("/<path:path>")
 def static_files(path):
+    if path.endswith((".html", ".js")):
+        return _no_cache(send_from_directory(WEB_DIR, path))
     return send_from_directory(WEB_DIR, path)
 
 
