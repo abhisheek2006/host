@@ -119,10 +119,6 @@
         </p>
         <p id="register-error" class="hidden mt-4 text-center text-sm text-red-400"></p>
       </div>
-
-      <button id="goto-dashboard" class="btn-ghost w-full mt-3 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98] hidden">
-        <i class="ph-bold ph-arrow-right text-base"></i> Go to Dashboard
-      </button>
       <a href="/" class="btn-ghost w-full mt-3 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2">
         <i class="ph-bold ph-arrow-left text-base"></i> Back to Home
       </a>
@@ -892,7 +888,12 @@ Please try again later. Thank you for your patience!</textarea>
     // init
     refreshLoginButton();
     handleOAuthResult();
-    if (TOKEN) { showView('dashboard'); loadBots(); loadProfile(); } else { showView('login'); showAuth('login'); }
+    // Process a pending Firebase redirect result (if we just came back from Google),
+    // then show the right view.
+    handleFirebaseRedirect().finally(() => {
+      if (TOKEN) { showView('dashboard'); loadBots(); loadProfile(); }
+      else { showView('login'); showAuth('login'); }
+    });
   </script>
 </body>
 </html>
