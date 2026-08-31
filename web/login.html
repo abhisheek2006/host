@@ -264,9 +264,22 @@
     $('#github-btn').onclick = githubLogin;
 
     // init: if GitHub redirected us back with auth=success, finish login.
-    handleOAuthResult();
-    // If already signed in (e.g. navigated here manually), bounce to dashboard.
-    if (getToken()) { window.location.href = '/dashboard'; }
+    // Server returns to /login?auth=success&token=...  -> save token, go to dashboard.
+    // Otherwise, if a session already exists, go straight to the dashboard.
+    const params = new URLSearchParams(window.location.search);
+    const hasOAuth = params.has('auth');
+    const token = getToken();
+
+    if (token && !hasOAuth) {
+      // Already signed in (stored token) and no OAuth callback pending.
+      window.location.replace('/dashboard');
+    } else if (token && hasOAuth) {
+      // OAuth callback provided a token; keep the URL param clean and go to dashboard.
+      window.history.replaceState({}, '', window.location.pathname);
+      window.location.replace('/dashboard');
+    } else {
+      handleOAuthResult();
+    }
   </script>
 </body>
 </html>
