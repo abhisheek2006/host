@@ -43,13 +43,24 @@ WEB_DIR = Path(__file__).parent / "web"
 # ---------------------------------------------------------------- auth
 
 # Signed token secret derived from the existing encryption key (never hard-coded).
-_TTL = 60 * 60 * 24 * 7  # sessions last 7 days
+_TTL_PERSIST = 60 * 60 * 24 * 7       # "Remember me" sessions last 7 days
+_TTL_SESSION = 60 * 60 * 24          # session-only login expires after 1 day
 _serializer = URLSafeTimedSerializer(ENV_ENCRYPTION_KEY or "hostbot-dashboard-secret")
 
 
-def _make_token(user_id: int, **extra) -> str:
-    payload = {"uid": user_id}
+def _remember_from(body_or_args) -> bool:
+    remember = True
+    if isinstance(body_or_args, dict):
+        remember = bool(body_or_args.get("remember", True))
+    return remember
+
+
+def _make_token(user_id: int, remember: bool = True, **extra) -> str:
+    payload = {"uid": user_id, "remember": remember}
     payload.update(extra)
+    # Embed the expiry so the browser can enforce it client-side too.
+    ttl = _TTL_PERSIST if remember else _TTL_SESSION
+    payload["exp"] = int((datetime.utcnow() + timedelta(seconds=ttl)).timestamp())
     return _serializer.dumps(payload)
 
 
@@ -66,7 +77,7 @@ def _read_token() -> dict | None:
     if not token:
         return None
     try:
-        data = _serializer.loads(token, max_age=_TTL)
+        data = _serializer.loads(token, max_age=_TTL_PERSIST)
         return data if isinstance(data, dict) else None
     except (BadSignature, SignatureExpired):
         return None
@@ -106,6 +117,11 @@ def index():
 @app.route("/dashboard")
 def dashboard():
     return send_from_directory(WEB_DIR, "dashboard.html")
+
+
+@app.route("/login")
+def login_page():
+    return send_from_directory(WEB_DIR, "login.html")
 
 
 @app.route("/<path:path>")
@@ -168,7 +184,7 @@ def api_register():
 
     database.db_add_active_user(user_id)
     _notify_owner_new_user_sync(user_id, email)
-    token = _make_token(user_id, auth="email")
+    token = _make_token(user_id, remember=_remember_from(body), auth="email")
     return jsonify({"token": token, "user_id": user_id, "email": email}), 201
 
 
@@ -188,7 +204,7 @@ def api_login():
 
     user_id = user["id"]
     database.db_add_active_user(user_id)
-    token = _make_token(user_id, auth="email")
+    token = _make_token(user_id, remember=_remember_from(body), auth="email")
     return jsonify({"token": token, "user_id": user_id, "email": email})
 
 
@@ -249,7 +265,7 @@ def api_firebase_auth():
     database.db_add_active_user(user_id)
     if photo:
         database.db_update_user_photo(user_id, photo)
-    token = _make_token(user_id, auth="google")
+    token = _make_token(user_id, remember=_remember_from(body), auth="google")
     return jsonify({"token": token, "user_id": user_id, "email": email})
 
 
@@ -273,10 +289,10 @@ def auth_github_start():
 @app.get("/auth/github/callback")
 def auth_github_callback():
     if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
-        return redirect("/dashboard?auth=error")
+        return redirect("/login?auth=error")
     code = request.args.get("code")
     if not code:
-        return redirect("/dashboard?auth=cancel")
+        return redirect("/login?auth=cancel")
     try:
         token_resp = requests.post(
             "https://github.com/login/oauth/access_token",
@@ -292,9 +308,9 @@ def auth_github_callback():
         access_token = token_resp.json().get("access_token")
     except Exception as e:
         logger.error("GitHub token exchange failed: %s", e)
-        return redirect("/dashboard?auth=error")
+        return redirect("/login?auth=error")
     if not access_token:
-        return redirect("/dashboard?auth=error")
+        return redirect("/login?auth=error")
 
     try:
         headers = {"Authorization": f"token {access_token}"}
@@ -321,10 +337,10 @@ def auth_github_callback():
         if photo:
             database.db_update_user_photo(user_id, photo)
         token = _make_token(user_id, auth="github")
-        return redirect("/dashboard?auth=success&token=" + token)
+        return redirect("/login?auth=success&token=" + token)
     except Exception as e:
         logger.error("GitHub user fetch failed: %s", e)
-        return redirect("/dashboard?auth=error")
+        return redirect("/login?auth=error")
 
 
 def _notify_owner_new_user_sync(user_id: int, email: str) -> None:

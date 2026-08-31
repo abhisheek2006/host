@@ -43,87 +43,8 @@
 </head>
 <body class="text-gray-300 font-display antialiased min-h-screen">
 
-  <!-- LOGIN VIEW -->
-  <div id="view-login" class="flex items-center justify-center min-h-screen px-4">
-    <div class="card w-full max-w-md p-8">
-      <div class="flex items-center gap-2.5 mb-6">
-        <span class="w-8 h-8 rounded-lg bg-accent/15 border border-accent/25 flex items-center justify-center">
-          <i class="ph-bold ph-terminal text-accent text-sm"></i>
-        </span>
-        <span class="text-white font-semibold text-lg tracking-tight">HostBot</span>
-      </div>
-
-      <!-- LOGIN FORM -->
-      <div id="auth-login">
-        <h1 class="text-2xl font-bold text-white mb-1">Sign in</h1>
-        <p class="text-sm text-gray-500 mb-6">Welcome back. Log in to manage your bots.</p>
-
-        <label class="block text-xs text-gray-400 mb-1.5" for="email">Email</label>
-        <input id="email" type="email" autocomplete="email" placeholder="you@example.com"
-          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
-
-        <label class="block text-xs text-gray-400 mb-1.5" for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••"
-          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
-
-        <button id="login-btn" class="btn-accent w-full mt-2 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98]">
-          Sign in
-        </button>
-
-        <div class="flex items-center gap-3 my-5">
-          <span class="flex-1 h-px bg-white/10"></span>
-          <span class="text-xs text-gray-500">or continue with</span>
-          <span class="flex-1 h-px bg-white/10"></span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <button id="google-btn" class="btn-ghost py-3 rounded-lg font-semibold text-sm inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-            <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52Z"/></svg>
-            Google
-          </button>
-          <button id="github-btn" class="btn-ghost py-3 rounded-lg font-semibold text-sm inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
-            GitHub
-          </button>
-        </div>
-
-        <p class="text-xs text-gray-500 text-center mt-5">
-          No account? <button id="go-register" class="text-accent font-semibold hover:underline">Create one</button>
-        </p>
-        <p id="login-error" class="hidden mt-4 text-center text-sm text-red-400"></p>
-      </div>
-
-      <!-- REGISTER FORM -->
-      <div id="auth-register" class="hidden">
-        <h1 class="text-2xl font-bold text-white mb-1">Create account</h1>
-        <p class="text-sm text-gray-500 mb-6">Register to start hosting your bots.</p>
-
-        <label class="block text-xs text-gray-400 mb-1.5" for="reg-email">Email</label>
-        <input id="reg-email" type="email" autocomplete="email" placeholder="you@example.com"
-          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
-
-        <label class="block text-xs text-gray-400 mb-1.5" for="reg-password">Password</label>
-        <input id="reg-password" type="password" autocomplete="new-password" placeholder="Min 6 characters"
-          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
-
-        <label class="block text-xs text-gray-400 mb-1.5" for="reg-confirm">Confirm password</label>
-        <input id="reg-confirm" type="password" autocomplete="new-password" placeholder="••••••••"
-          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
-
-        <button id="register-btn" class="btn-accent w-full mt-2 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98]">
-          Create account
-        </button>
-
-        <p class="text-xs text-gray-500 text-center mt-5">
-          Already have an account? <button id="go-login" class="text-accent font-semibold hover:underline">Sign in</button>
-        </p>
-        <p id="register-error" class="hidden mt-4 text-center text-sm text-red-400"></p>
-      </div>
-      <a href="/" class="btn-ghost w-full mt-3 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2">
-        <i class="ph-bold ph-arrow-left text-base"></i> Back to Home
-      </a>
-    </div>
-  </div>
+  <!-- Auth guard: without a token we bounce to the dedicated login page. -->
+  <div id="view-login" class="hidden"></div>
 
   <!-- DASHBOARD VIEW -->
   <div id="view-dashboard" class="hidden max-w-5xl mx-auto px-4 py-8">
@@ -318,7 +239,8 @@ Please try again later. Thank you for your patience!</textarea>
 
   <script>
     const $ = (s, el = document) => el.querySelector(s);
-    let TOKEN = localStorage.getItem('hb_token');
+    let TOKEN = localStorage.getItem('hb_token') || sessionStorage.getItem('hb_token');
+    const CLEAR_TOKENS = () => { localStorage.removeItem('hb_token'); sessionStorage.removeItem('hb_token'); localStorage.removeItem('hb_remember'); };
 
     function api(path, opts = {}) {
       const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
@@ -564,94 +486,11 @@ Please try again later. Thank you for your patience!</textarea>
       }
     });
 
-    function showAuth(which) {
-      $('#auth-login').classList.toggle('hidden', which !== 'login');
-      $('#auth-register').classList.toggle('hidden', which !== 'register');
-      $('#login-error').classList.add('hidden');
-      $('#register-error').classList.add('hidden');
-    }
-
-    async function login() {
-      const email = $('#email').value.trim();
-      const password = $('#password').value;
-      const err = $('#login-error');
-      err.classList.add('hidden');
-      if (!email || !password) { err.textContent = 'Enter your email and password.'; err.classList.remove('hidden'); return; }
-      try {
-        const d = await api('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-        TOKEN = d.token;
-        localStorage.setItem('hb_token', TOKEN);
-        $('#password').value = '';
-        afterAuth('dashboard');
-      } catch (e) {
-        err.textContent = e.message; err.classList.remove('hidden');
-      }
-    }
-
-    async function register() {
-      const email = $('#reg-email').value.trim();
-      const password = $('#reg-password').value;
-      const confirm = $('#reg-confirm').value;
-      const err = $('#register-error');
-      err.classList.add('hidden');
-      if (!email) { err.textContent = 'Enter your email.'; err.classList.remove('hidden'); return; }
-      if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.classList.remove('hidden'); return; }
-      if (password !== confirm) { err.textContent = 'Passwords do not match.'; err.classList.remove('hidden'); return; }
-      try {
-        const d = await api('/api/register', { method: 'POST', body: JSON.stringify({ email, password, confirm_password: confirm }) });
-        TOKEN = d.token;
-        localStorage.setItem('hb_token', TOKEN);
-        $('#reg-password').value = ''; $('#reg-confirm').value = '';
-        toast('Account created. Welcome!');
-        afterAuth('dashboard');
-      } catch (e) {
-        err.textContent = e.message; err.classList.remove('hidden');
-      }
-    }
-
-    async function googleLogin() {
-      // Google sign-in uses the Firebase web SDK (client side) when the server
-      // exposes the Firebase web config in the dashboard HTML. Otherwise show a hint.
-      if (window.FIREBASE_CONFIG) {
-        try {
-          const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-          const { getAuth, GoogleAuthProvider, signInWithPopup } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
-          const fbApp = initializeApp(window.FIREBASE_CONFIG);
-          const auth = getAuth(fbApp);
-          const cred = await signInWithPopup(auth, new GoogleAuthProvider());
-          const idToken = await cred.user.getIdToken();
-          const d = await api('/api/auth/firebase', { method: 'POST', body: JSON.stringify({ id_token: idToken }) });
-          TOKEN = d.token;
-          localStorage.setItem('hb_token', TOKEN);
-          afterAuth('dashboard');
-        } catch (e) {
-          $('#login-error').textContent = 'Google sign-in failed: ' + e.message;
-          $('#login-error').classList.remove('hidden');
-        }
-        return;
-      }
-      $('#login-error').textContent = 'Google sign-in is not configured on the server.';
-      $('#login-error').classList.remove('hidden');
-    }
-
-    /// GitHub OAuth redirect for manual flow
-    function githubLogin() {
-      window.location.href = '/auth/github';
-    }
-
-    function afterAuth(view) {
-      refreshLoginButton();
-      showView(view);
-      loadBots();
-      loadProfile();
-    }
-
     function logout() {
       TOKEN = null;
-      localStorage.removeItem('hb_token');
+      CLEAR_TOKENS();
       $('#profile-photo').classList.add('hidden');
-      showView('login');
-      showAuth('login');
+      window.location.href = '/login';
     }
 
     async function loadProfile() {
@@ -671,23 +510,6 @@ Please try again later. Thank you for your patience!</textarea>
         }
       } catch (e) {
         toast('Could not load profile', false);
-      }
-    }
-
-    function refreshLoginButton() {
-      $('#goto-dashboard').classList.toggle('hidden', !TOKEN);
-    }
-
-    async function gotoDashboard() {
-      if (!TOKEN) return;
-      try {
-        await api('/api/me');
-        showAuth('login');
-        afterAuth('dashboard');
-      } catch (e) {
-        // token invalid -> back to login
-        logout();
-        toast('Session expired, please log in again', false);
       }
     }
 
@@ -778,15 +600,6 @@ Please try again later. Thank you for your patience!</textarea>
       } catch (e) { toast(e.message, false); }
     }
 
-    $('#login-btn').onclick = login;
-    $('#password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-    $('#register-btn').onclick = register;
-    $('#reg-confirm').addEventListener('keydown', e => { if (e.key === 'Enter') register(); });
-    $('#go-register').onclick = () => showAuth('register');
-    $('#go-login').onclick = () => showAuth('login');
-    $('#google-btn').onclick = googleLogin;
-    $('#github-btn').onclick = githubLogin;
-    $('#goto-dashboard').onclick = gotoDashboard;
     $('#logout-btn').onclick = logout;
     $('#refresh-btn').onclick = loadBots;
     $('#profile-refresh').onclick = loadProfile;
@@ -860,44 +673,11 @@ Please try again later. Thank you for your patience!</textarea>
       }
     };
 
-    // Handle OAuth redirect result (GitHub server-side flow)
-    function handleOAuthResult() {
-      const params = new URLSearchParams(window.location.search);
-      const auth = params.get('auth');
-      if (auth === 'error') { showAuth('login'); $('#login-error').textContent = 'GitHub sign-in failed.'; $('#login-error').classList.remove('hidden'); return 'login'; }
-      if (auth === 'cancel') { showAuth('login'); return 'login'; }
-      if (auth === 'success') {
-        const token = params.get('token');
-        if (token) { localStorage.setItem('hb_token', token); TOKEN = token; }
-        const clean = window.location.pathname + window.location.hash;
-        window.history.replaceState({}, '', clean);
-        toast('Signed in with GitHub');
-        return 'dashboard';
-      }
-      return null;
-    }
-
-    // Fetch server config (e.g. Firebase web config) exposed to the client
-    (async function loadConfig() {
-      try {
-        const r = await fetch('/api/config');
-        const cfg = await r.json();
-        if (cfg && cfg.firebase_web) window.FIREBASE_CONFIG = cfg.firebase_web;
-      } catch (e) { /* optional */ }
-    })();
-
-    // init
-    refreshLoginButton();
-    const oauthView = handleOAuthResult();
-    if (TOKEN) {
-      // token already valid (existing session or GitHub redirect just set it)
-      showView('dashboard'); loadBots(); loadProfile();
+    // init: this page requires a valid session; otherwise go to the login page.
+    if (!TOKEN) {
+      window.location.replace('/login');
     } else {
-      showView('login'); showAuth('login');
-    }
-    // If there is a pending Firebase redirect result, process it (may set TOKEN).
-    if (!oauthView && window.location.search.includes('auth')) {
-      handleFirebaseRedirect();
+      showView('dashboard'); loadBots(); loadProfile();
     }
   </script>
 </body>

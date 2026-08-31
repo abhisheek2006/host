@@ -161,11 +161,13 @@ or **clone a git repo**, then view their bots, edit environment variables,
 start/stop/restart, view live logs, and delete bots.
 
 **Login flow**
-1. User opens `WEB_URL/dashboard`.
-2. Sign in with **email + password** (create an account via `/register` in the bot,
-   or directly on the dashboard with the "Create account" form).
+1. User opens `WEB_URL/dashboard`; if not signed in they're redirected to `WEB_URL/login`.
+2. On the login page, sign in with **email + password** (create an account via `/register`
+   in the bot, or directly on the login page with the "Create account" form).
 3. Or sign in with **Continue with Google** (Firebase) / **Continue with GitHub**.
-4. A signed session token is issued (valid 7 days) and stored in `localStorage`.
+4. A signed session token is issued and stored in `localStorage` (Remember me) or
+   `sessionStorage` (cleared when the browser closes). Remembered sessions expire after
+   7 days; session-only logins expire after 1 day.
 
 **Keep the Telegram UID linked:** Telegram bot IDs and web account IDs are separate.
 Uploading via the bot and managing via the dashboard both work; bots are owned by the
