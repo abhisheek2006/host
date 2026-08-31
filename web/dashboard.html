@@ -864,16 +864,17 @@ Please try again later. Thank you for your patience!</textarea>
     function handleOAuthResult() {
       const params = new URLSearchParams(window.location.search);
       const auth = params.get('auth');
-      if (auth === 'error') { showAuth('login'); $('#login-error').textContent = 'GitHub sign-in failed.'; $('#login-error').classList.remove('hidden'); return; }
-      if (auth === 'cancel') { showAuth('login'); return; }
+      if (auth === 'error') { showAuth('login'); $('#login-error').textContent = 'GitHub sign-in failed.'; $('#login-error').classList.remove('hidden'); return 'login'; }
+      if (auth === 'cancel') { showAuth('login'); return 'login'; }
       if (auth === 'success') {
         const token = params.get('token');
         if (token) { localStorage.setItem('hb_token', token); TOKEN = token; }
         const clean = window.location.pathname + window.location.hash;
         window.history.replaceState({}, '', clean);
-        afterAuth('dashboard');
         toast('Signed in with GitHub');
+        return 'dashboard';
       }
+      return null;
     }
 
     // Fetch server config (e.g. Firebase web config) exposed to the client
@@ -887,13 +888,17 @@ Please try again later. Thank you for your patience!</textarea>
 
     // init
     refreshLoginButton();
-    handleOAuthResult();
-    // Process a pending Firebase redirect result (if we just came back from Google),
-    // then show the right view.
-    handleFirebaseRedirect().finally(() => {
-      if (TOKEN) { showView('dashboard'); loadBots(); loadProfile(); }
-      else { showView('login'); showAuth('login'); }
-    });
+    const oauthView = handleOAuthResult();
+    if (TOKEN) {
+      // token already valid (existing session or GitHub redirect just set it)
+      showView('dashboard'); loadBots(); loadProfile();
+    } else {
+      showView('login'); showAuth('login');
+    }
+    // If there is a pending Firebase redirect result, process it (may set TOKEN).
+    if (!oauthView && window.location.search.includes('auth')) {
+      handleFirebaseRedirect();
+    }
   </script>
 </body>
 </html>
