@@ -252,6 +252,20 @@
         <hr class="border-white/5 my-6">
 
         <div class="mb-6">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-sm text-white font-semibold">🕓 Pending approvals</p>
+            <button id="pending-refresh" class="btn-ghost px-3 py-1.5 rounded-lg text-xs transition-colors">Refresh</button>
+          </div>
+          <p class="text-xs text-gray-500 mb-3">Approve or reject submitted bot files. The owner is notified on Telegram.</p>
+          <div id="pending-list" class="space-y-2">
+            <p class="text-xs text-gray-500">Loading…</p>
+          </div>
+          <p id="pending-error" class="hidden text-sm text-red-400 mt-2"></p>
+        </div>
+
+        <hr class="border-white/5 my-6">
+
+        <div class="mb-6">
           <div class="flex items-center justify-between mb-2">
             <p class="text-sm text-white font-semibold">🔧 Maintenance Mode</p>
             <button id="maint-toggle" class="relative w-12 h-7 rounded-full bg-surface-3 border border-white/10 transition-colors">
@@ -612,6 +626,7 @@ Please try again later. Thank you for your patience!</textarea>
         $('#admin-login').classList.add('hidden');
         $('#admin-controls').classList.remove('hidden');
         loadStats();
+        loadPending();
       } catch (e) {
         adminLogout();
         toast('Admin session expired', false);
@@ -672,6 +687,41 @@ Please try again later. Thank you for your patience!</textarea>
       }
     }
 
+    async function loadPending() {
+      const list = $('#pending-list');
+      try {
+        const d = await adminApi('/api/admin/pending');
+        if (!d.pending.length) { list.innerHTML = '<p class="text-xs text-gray-500">No files waiting for approval.</p>'; return; }
+        list.innerHTML = d.pending.map(b => `
+          <div class="flex items-center gap-3 rounded-xl bg-surface-2 border border-white/10 p-3">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm text-white font-medium truncate">${esc(b.filename)}</p>
+              <p class="text-xs text-gray-500 truncate">User #${b.user_id}${b.user_email ? ' · ' + esc(b.user_email) : ''} · ${esc(b.file_type)} · ${esc(b.created_at || '').slice(0,16).replace('T',' ')}</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button class="btn-accent px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="approveBot(${b.id})">Approve</button>
+              <button class="btn-ghost px-3 py-1.5 rounded-lg text-xs" onclick="rejectBot(${b.id})">Reject</button>
+            </div>
+          </div>`).join('');
+      } catch (e) {
+        const el = $('#pending-error');
+        el.textContent = 'Could not load pending approvals: ' + e.message;
+        el.classList.remove('hidden');
+      }
+    }
+
+    async function approveBot(botId) {
+      await adminApi('/api/admin/approve/' + botId, { method: 'POST' });
+      toast('Approved');
+      loadPending(); loadStats();
+    }
+
+    async function rejectBot(botId) {
+      await adminApi('/api/admin/reject/' + botId, { method: 'POST' });
+      toast('Rejected');
+      loadPending(); loadStats();
+    }
+
     async function adminLogin() {
       const err = $('#admin-login-error');
       err.classList.add('hidden');
@@ -727,6 +777,7 @@ Please try again later. Thank you for your patience!</textarea>
     $('#maint-toggle').onclick = toggleMaintenance;
     $('#maint-save').onclick = saveNotice;
     $('#broadcast-send').onclick = sendBroadcast;
+    $('#pending-refresh').onclick = loadPending;
     $('#admin-back').onclick = () => { showView('dashboard'); };
     $('#admin-logout').onclick = () => { adminLogout(); showView('dashboard'); toast('Admin logged out'); };
 

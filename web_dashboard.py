@@ -934,6 +934,78 @@ def api_admin_broadcast():
     return jsonify({"queued": True})
 
 
+@app.get("/api/admin/pending")
+def api_admin_pending():
+    try:
+        _require_admin()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    rows = database.db_get_pending_bots()
+    out = []
+    for b in rows:
+        user = database.db_get_user_by_id(b["user_id"]) if b.get("user_id") else None
+        out.append({
+            "id": b["id"],
+            "filename": b.get("filename"),
+            "file_type": b.get("file_type"),
+            "status": b.get("status"),
+            "user_id": b.get("user_id"),
+            "user_email": (user or {}).get("email") or "",
+            "created_at": b.get("created_at"),
+        })
+    return jsonify({"pending": out})
+
+
+def _set_approval(bot_id: int, approval: str):
+    b = database.db_get_bot_any(bot_id)
+    if not b:
+        return None
+    if b.get("approval") != "pending":
+        raise ValueError("This bot is no longer pending")
+    database.db_update_bot(bot_id, approval=approval)
+    # Notify the owner on Telegram (best effort).
+    try:
+        import bot as hostbot
+        icon = "✅" if approval == "approved" else "❌"
+        hostbot._notify_user_sync(
+            b["user_id"],
+            f"{icon} **File {approval.title()}**\n\n📁 `{b.get('filename')}`\n👮 By: Web Admin",
+        )
+    except Exception:
+        pass
+    return b
+
+
+@app.post("/api/admin/approve/<int:bot_id>")
+def api_admin_approve(bot_id: int):
+    try:
+        _require_admin()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    try:
+        b = _set_approval(bot_id, "approved")
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    if not b:
+        return jsonify({"error": "Bot not found"}), 404
+    return jsonify({"ok": True, "approval": "approved", "bot_id": bot_id})
+
+
+@app.post("/api/admin/reject/<int:bot_id>")
+def api_admin_reject(bot_id: int):
+    try:
+        _require_admin()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    try:
+        b = _set_approval(bot_id, "rejected")
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    if not b:
+        return jsonify({"error": "Bot not found"}), 404
+    return jsonify({"ok": True, "approval": "rejected", "bot_id": bot_id})
+
+
 # ---------------------------------------------------------------- run
 
 def main() -> None:
