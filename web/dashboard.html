@@ -46,27 +46,80 @@
   <!-- LOGIN VIEW -->
   <div id="view-login" class="flex items-center justify-center min-h-screen px-4">
     <div class="card w-full max-w-md p-8">
-      <div class="flex items-center gap-2.5 mb-8">
+      <div class="flex items-center gap-2.5 mb-6">
         <span class="w-8 h-8 rounded-lg bg-accent/15 border border-accent/25 flex items-center justify-center">
           <i class="ph-bold ph-terminal text-accent text-sm"></i>
         </span>
         <span class="text-white font-semibold text-lg tracking-tight">HostBot</span>
       </div>
-      <h1 class="text-2xl font-bold text-white mb-1">Sign in</h1>
-      <p class="text-sm text-gray-500 mb-6">Enter your one-time login code from the Telegram bot.</p>
 
-      <label class="block text-xs text-gray-400 mb-1.5" for="code">Login code</label>
-      <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
-        placeholder="000000"
-        class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono text-center tracking-[0.5em] placeholder-gray-600 focus:outline-none focus:border-accent/60 transition-colors" />
+      <!-- LOGIN FORM -->
+      <div id="auth-login">
+        <h1 class="text-2xl font-bold text-white mb-1">Sign in</h1>
+        <p class="text-sm text-gray-500 mb-6">Welcome back. Log in to manage your bots.</p>
 
-      <button id="login-btn" class="btn-accent w-full mt-6 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98]">
-        Sign in
-      </button>
-      <p class="text-xs text-gray-500 text-center mt-5">
-        Message the bot with <span class="text-accent font-mono">/web_login</span> to get a code.
-      </p>
-      <p id="login-error" class="hidden mt-4 text-center text-sm text-red-400"></p>
+        <label class="block text-xs text-gray-400 mb-1.5" for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" placeholder="you@example.com"
+          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
+
+        <label class="block text-xs text-gray-400 mb-1.5" for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••"
+          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
+
+        <button id="login-btn" class="btn-accent w-full mt-2 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98]">
+          Sign in
+        </button>
+
+        <div class="flex items-center gap-3 my-5">
+          <span class="flex-1 h-px bg-white/10"></span>
+          <span class="text-xs text-gray-500">or continue with</span>
+          <span class="flex-1 h-px bg-white/10"></span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button id="google-btn" class="btn-ghost py-3 rounded-lg font-semibold text-sm inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+            <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52Z"/></svg>
+            Google
+          </button>
+          <button id="github-btn" class="btn-ghost py-3 rounded-lg font-semibold text-sm inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+            GitHub
+          </button>
+        </div>
+
+        <p class="text-xs text-gray-500 text-center mt-5">
+          No account? <button id="go-register" class="text-accent font-semibold hover:underline">Create one</button>
+        </p>
+        <p id="login-error" class="hidden mt-4 text-center text-sm text-red-400"></p>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="auth-register" class="hidden">
+        <h1 class="text-2xl font-bold text-white mb-1">Create account</h1>
+        <p class="text-sm text-gray-500 mb-6">Register to start hosting your bots.</p>
+
+        <label class="block text-xs text-gray-400 mb-1.5" for="reg-email">Email</label>
+        <input id="reg-email" type="email" autocomplete="email" placeholder="you@example.com"
+          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
+
+        <label class="block text-xs text-gray-400 mb-1.5" for="reg-password">Password</label>
+        <input id="reg-password" type="password" autocomplete="new-password" placeholder="Min 6 characters"
+          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
+
+        <label class="block text-xs text-gray-400 mb-1.5" for="reg-confirm">Confirm password</label>
+        <input id="reg-confirm" type="password" autocomplete="new-password" placeholder="••••••••"
+          class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
+
+        <button id="register-btn" class="btn-accent w-full mt-2 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98]">
+          Create account
+        </button>
+
+        <p class="text-xs text-gray-500 text-center mt-5">
+          Already have an account? <button id="go-login" class="text-accent font-semibold hover:underline">Sign in</button>
+        </p>
+        <p id="register-error" class="hidden mt-4 text-center text-sm text-red-400"></p>
+      </div>
+
       <button id="goto-dashboard" class="btn-ghost w-full mt-3 py-3 rounded-lg font-semibold text-sm transition-all active:scale-[0.98] hidden">
         <i class="ph-bold ph-arrow-right text-base"></i> Go to Dashboard
       </button>
@@ -130,9 +183,53 @@
 
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-bold text-white">Your bots</h2>
-      <button id="refresh-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
-        <i class="ph-bold ph-arrows-clockwise" id="refresh-icon"></i> Refresh
-      </button>
+      <div class="flex items-center gap-2">
+        <button id="refresh-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
+          <i class="ph-bold ph-arrows-clockwise" id="refresh-icon"></i> Refresh
+        </button>
+        <button id="git-btn" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors">
+          <i class="ph-bold ph-git-branch"></i> Git Clone
+        </button>
+        <button id="upload-btn" class="btn-accent inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+          <i class="ph-bold ph-upload"></i> Upload File
+        </button>
+      </div>
+    </div>
+
+    <!-- Upload panel -->
+    <div id="upload-panel" class="hidden card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-white font-semibold">📄 Upload a bot file</p>
+        <button id="upload-close" class="text-gray-400 hover:text-white transition-colors"><i class="ph-bold ph-x text-xl"></i></button>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Upload a <span class="font-mono text-accent">.py</span> or <span class="font-mono text-accent">.zip</span> file. It will be submitted for admin approval before it can run.</p>
+      <input id="file-input" type="file" accept=".py,.zip"
+        class="block w-full text-sm text-gray-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-gray-900 hover:file:bg-accent/90 cursor-pointer" />
+      <div class="flex items-center justify-end gap-2 mt-4">
+        <div id="upload-spinner" class="hidden"><i class="ph-bold ph-circle-notch spin text-accent text-lg"></i></div>
+        <button id="upload-submit" class="btn-accent px-5 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-[0.98]">Upload</button>
+      </div>
+      <p id="upload-result" class="hidden mt-3 text-sm text-red-400"></p>
+    </div>
+
+    <!-- Git clone panel -->
+    <div id="git-panel" class="hidden card p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-white font-semibold">🪵 Clone a Git repository</p>
+        <button id="git-close" class="text-gray-400 hover:text-white transition-colors"><i class="ph-bold ph-x text-xl"></i></button>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Paste a GitHub repository URL. The repo is cloned and submitted for approval.</p>
+      <input id="git-url" type="text" placeholder="https://github.com/user/repo"
+        class="w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono mb-3 focus:outline-none focus:border-accent/60 transition-colors" />
+      <details class="text-xs text-gray-500 mb-3">
+        <summary class="cursor-pointer text-accent">Need a private repo? Add a Personal Access Token</summary>
+        <input id="git-token" type="password" placeholder="github_pat_..." class="mt-2 w-full bg-surface-2 border border-white/10 rounded-lg px-4 py-3 text-white font-mono text-xs focus:outline-none focus:border-accent/60 transition-colors" />
+      </details>
+      <div class="flex items-center justify-end gap-2">
+        <div id="git-spinner" class="hidden"><i class="ph-bold ph-circle-notch spin text-accent text-lg"></i></div>
+        <button id="git-submit" class="btn-accent px-5 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-[0.98]">Clone & Submit</button>
+      </div>
+      <p id="git-result" class="hidden mt-3 text-sm text-red-400"></p>
     </div>
 
     <div id="bots-empty" class="hidden text-center py-16 text-gray-500">
@@ -471,23 +568,86 @@ Please try again later. Thank you for your patience!</textarea>
       }
     });
 
+    function showAuth(which) {
+      $('#auth-login').classList.toggle('hidden', which !== 'login');
+      $('#auth-register').classList.toggle('hidden', which !== 'register');
+      $('#login-error').classList.add('hidden');
+      $('#register-error').classList.add('hidden');
+    }
+
     async function login() {
-      const code = $('#code').value.trim();
+      const email = $('#email').value.trim();
+      const password = $('#password').value;
       const err = $('#login-error');
       err.classList.add('hidden');
-      if (code.length !== 6) { err.textContent = 'Enter the 6-digit code.'; err.classList.remove('hidden'); return; }
+      if (!email || !password) { err.textContent = 'Enter your email and password.'; err.classList.remove('hidden'); return; }
       try {
-        const d = await api('/api/login', { method: 'POST', body: JSON.stringify({ code }) });
+        const d = await api('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
         TOKEN = d.token;
         localStorage.setItem('hb_token', TOKEN);
-        $('#code').value = '';
-        refreshLoginButton();
-        showView('dashboard');
-        loadBots();
-        loadProfile();
+        $('#password').value = '';
+        afterAuth('dashboard');
       } catch (e) {
         err.textContent = e.message; err.classList.remove('hidden');
       }
+    }
+
+    async function register() {
+      const email = $('#reg-email').value.trim();
+      const password = $('#reg-password').value;
+      const confirm = $('#reg-confirm').value;
+      const err = $('#register-error');
+      err.classList.add('hidden');
+      if (!email) { err.textContent = 'Enter your email.'; err.classList.remove('hidden'); return; }
+      if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.classList.remove('hidden'); return; }
+      if (password !== confirm) { err.textContent = 'Passwords do not match.'; err.classList.remove('hidden'); return; }
+      try {
+        const d = await api('/api/register', { method: 'POST', body: JSON.stringify({ email, password, confirm_password: confirm }) });
+        TOKEN = d.token;
+        localStorage.setItem('hb_token', TOKEN);
+        $('#reg-password').value = ''; $('#reg-confirm').value = '';
+        toast('Account created. Welcome!');
+        afterAuth('dashboard');
+      } catch (e) {
+        err.textContent = e.message; err.classList.remove('hidden');
+      }
+    }
+
+    async function googleLogin() {
+      // Google sign-in uses the Firebase web SDK (client side) when the server
+      // exposes the Firebase web config in the dashboard HTML. Otherwise show a hint.
+      if (window.FIREBASE_CONFIG) {
+        try {
+          const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+          const { getAuth, GoogleAuthProvider, signInWithPopup } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+          const fbApp = initializeApp(window.FIREBASE_CONFIG);
+          const auth = getAuth(fbApp);
+          const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+          const idToken = await cred.user.getIdToken();
+          const d = await api('/api/auth/firebase', { method: 'POST', body: JSON.stringify({ id_token: idToken }) });
+          TOKEN = d.token;
+          localStorage.setItem('hb_token', TOKEN);
+          afterAuth('dashboard');
+        } catch (e) {
+          $('#login-error').textContent = 'Google sign-in failed: ' + e.message;
+          $('#login-error').classList.remove('hidden');
+        }
+        return;
+      }
+      $('#login-error').textContent = 'Google sign-in is not configured on the server.';
+      $('#login-error').classList.remove('hidden');
+    }
+
+    /// GitHub OAuth redirect for manual flow
+    function githubLogin() {
+      window.location.href = '/auth/github';
+    }
+
+    function afterAuth(view) {
+      refreshLoginButton();
+      showView(view);
+      loadBots();
+      loadProfile();
     }
 
     function logout() {
@@ -495,14 +655,15 @@ Please try again later. Thank you for your patience!</textarea>
       localStorage.removeItem('hb_token');
       $('#profile-photo').classList.add('hidden');
       showView('login');
+      showAuth('login');
     }
 
     async function loadProfile() {
       try {
         const me = await api('/api/me');
-        $('#profile-name').textContent = me.first_name || 'Telegram User';
-        $('#profile-username').textContent = me.username ? '@' + me.username : '';
-        $('#profile-bio').textContent = me.bio || '';
+        $('#profile-name').textContent = me.first_name || 'User';
+        $('#profile-username').textContent = me.email || (me.username ? '@' + me.username : '');
+        $('#profile-bio').textContent = me.bio && me.bio !== 'No bio' ? me.bio : '';
         const img = $('#profile-photo');
         if (me.has_photo) {
           img.src = '/api/me/photo?token=' + encodeURIComponent(TOKEN || '') + '&t=' + Date.now();
@@ -525,11 +686,8 @@ Please try again later. Thank you for your patience!</textarea>
       if (!TOKEN) return;
       try {
         await api('/api/me');
-        $('#code').value = '';
-        $('#login-error').classList.add('hidden');
-        showView('dashboard');
-        loadBots();
-        loadProfile();
+        showAuth('login');
+        afterAuth('dashboard');
       } catch (e) {
         // token invalid -> back to login
         logout();
@@ -625,7 +783,13 @@ Please try again later. Thank you for your patience!</textarea>
     }
 
     $('#login-btn').onclick = login;
-    $('#code').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    $('#password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    $('#register-btn').onclick = register;
+    $('#reg-confirm').addEventListener('keydown', e => { if (e.key === 'Enter') register(); });
+    $('#go-register').onclick = () => showAuth('register');
+    $('#go-login').onclick = () => showAuth('login');
+    $('#google-btn').onclick = googleLogin;
+    $('#github-btn').onclick = githubLogin;
     $('#goto-dashboard').onclick = gotoDashboard;
     $('#logout-btn').onclick = logout;
     $('#refresh-btn').onclick = loadBots;
@@ -639,9 +803,96 @@ Please try again later. Thank you for your patience!</textarea>
     $('#admin-back').onclick = () => { showView('dashboard'); };
     $('#admin-logout').onclick = () => { adminLogout(); showView('dashboard'); toast('Admin logged out'); };
 
+    // Upload panel
+    function showUpload() { $('#upload-panel').classList.remove('hidden'); $('#git-panel').classList.add('hidden'); }
+    function showGit() { $('#git-panel').classList.remove('hidden'); $('#upload-panel').classList.add('hidden'); }
+    $('#upload-btn').onclick = showUpload;
+    $('#git-btn').onclick = showGit;
+    $('#upload-close').onclick = () => $('#upload-panel').classList.add('hidden');
+    $('#git-close').onclick = () => $('#git-panel').classList.add('hidden');
+
+    $('#upload-submit').onclick = async () => {
+      const file = $('#file-input').files[0];
+      const out = $('#upload-result');
+      out.classList.add('hidden');
+      if (!file) { out.textContent = 'Choose a file first.'; out.classList.remove('hidden'); return; }
+      const fd = new FormData();
+      fd.append('file', file);
+      $('#upload-spinner').classList.remove('hidden');
+      const btn = $('#upload-submit');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/bots/upload', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + TOKEN },
+          body: fd,
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Upload failed');
+        toast('Bot submitted for approval');
+        $('#file-input').value = '';
+        $('#upload-panel').classList.add('hidden');
+        loadBots();
+      } catch (e) {
+        out.textContent = e.message; out.classList.remove('hidden');
+      } finally {
+        $('#upload-spinner').classList.add('hidden');
+        btn.disabled = false;
+      }
+    };
+
+    $('#git-submit').onclick = async () => {
+      const url = $('#git-url').value.trim();
+      const token = $('#git-token').value.trim();
+      const out = $('#git-result');
+      out.classList.add('hidden');
+      if (!url) { out.textContent = 'Enter a repository URL.'; out.classList.remove('hidden'); return; }
+      $('#git-spinner').classList.remove('hidden');
+      const btn = $('#git-submit');
+      btn.disabled = true;
+      try {
+        const d = await api('/api/bots/git', { method: 'POST', body: JSON.stringify({ repo_url: url, token: token || undefined }) });
+        toast('Repo cloned & submitted for approval');
+        $('#git-url').value = ''; $('#git-token').value = '';
+        $('#git-panel').classList.add('hidden');
+        loadBots();
+      } catch (e) {
+        out.textContent = e.message; out.classList.remove('hidden');
+      } finally {
+        $('#git-spinner').classList.add('hidden');
+        btn.disabled = false;
+      }
+    };
+
+    // Handle OAuth redirect result (GitHub server-side flow)
+    function handleOAuthResult() {
+      const params = new URLSearchParams(window.location.search);
+      const auth = params.get('auth');
+      if (auth === 'error') { showAuth('login'); $('#login-error').textContent = 'GitHub sign-in failed.'; $('#login-error').classList.remove('hidden'); return; }
+      if (auth === 'cancel') { showAuth('login'); return; }
+      if (auth === 'success') {
+        const token = params.get('token');
+        if (token) { localStorage.setItem('hb_token', token); TOKEN = token; }
+        const clean = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, '', clean);
+        afterAuth('dashboard');
+        toast('Signed in with GitHub');
+      }
+    }
+
+    // Fetch server config (e.g. Firebase web config) exposed to the client
+    (async function loadConfig() {
+      try {
+        const r = await fetch('/api/config');
+        const cfg = await r.json();
+        if (cfg && cfg.firebase_web) window.FIREBASE_CONFIG = cfg.firebase_web;
+      } catch (e) { /* optional */ }
+    })();
+
     // init
     refreshLoginButton();
-    if (TOKEN) { showView('dashboard'); loadBots(); loadProfile(); } else { showView('login'); }
+    handleOAuthResult();
+    if (TOKEN) { showView('dashboard'); loadBots(); loadProfile(); } else { showView('login'); showAuth('login'); }
   </script>
 </body>
 </html>

@@ -144,7 +144,8 @@ python bot.py
 | `/start` | Everyone | Main menu with inline buttons |
 | `/bots` | Everyone | List your bots with status |
 | `/env <bot_id>` | Owner/Admin | View encrypted env variables |
-| `/web_login` | Everyone | Get a one-time code for the web dashboard |
+| `/register` | Everyone | Create a web dashboard account (email + password) |
+| `/login` | Everyone | How to log in to the web dashboard |
 | `/help` | Everyone | Help text |
 | `/cancel` | Everyone | Cancel current action |
 | `/ping` | Everyone | Latency check |
@@ -154,13 +155,21 @@ python bot.py
 ## Web Dashboard
 
 A self-hosted web dashboard runs on the VPS (Flask) sharing the same MongoDB + Docker
-as the Telegram bot. Users can log in with a one-time code, view their bots, edit
-environment variables, start/stop/restart, view live logs, and delete bots.
+as the Telegram bot. Users can sign up / log in with email + password, or with **Google**
+(Firebase) or **GitHub** OAuth. From the dashboard they can **upload a file** (`.py`/`.zip`)
+or **clone a git repo**, then view their bots, edit environment variables,
+start/stop/restart, view live logs, and delete bots.
 
 **Login flow**
-1. User sends `/web_login` to the Telegram bot → gets a 6-digit code.
-2. User opens `WEB_URL/dashboard` and enters the code.
-3. A signed session token is issued; the code is single-use and expires in 5 minutes.
+1. User opens `WEB_URL/dashboard`.
+2. Sign in with **email + password** (create an account via `/register` in the bot,
+   or directly on the dashboard with the "Create account" form).
+3. Or sign in with **Continue with Google** (Firebase) / **Continue with GitHub**.
+4. A signed session token is issued (valid 7 days) and stored in `localStorage`.
+
+**Keep the Telegram UID linked:** Telegram bot IDs and web account IDs are separate.
+Uploading via the bot and managing via the dashboard both work; bots are owned by the
+same numeric `user_id`.
 
 **Run the dashboard** (already configured via `dashboard.service`):
 ```bash
@@ -170,7 +179,13 @@ python web_dashboard.py   # serves http://0.0.0.0:9090 (DASHBOARD_PORT)
 Set `WEB_URL` in `.env` to the public URL/IP of your dashboard.
 
 **API endpoints** (all JSON, authenticated via `Authorization: Bearer <token>`):
-- `POST /api/login` `{code}` → `{token, user_id}`
+- `POST /api/register` `{email, password, confirm_password}` → `{token, user_id}`
+- `POST /api/login` `{email, password}` → `{token, user_id}`
+- `POST /api/auth/firebase` `{id_token}` → Google (Firebase) sign-in
+- `GET /auth/github`, `GET /auth/github/callback` → GitHub OAuth sign-in
+- `GET /api/config` → public config (Firebase web config, GitHub enabled flag)
+- `POST /api/bots/upload` (multipart `file`) → upload a `.py`/`.zip` bot
+- `POST /api/bots/git` `{repo_url, token?}` → clone a GitHub repo and create a bot
 - `GET /api/bots` → list of the user's bots
 - `GET /api/bots/<id>` → single bot
 - `POST /api/bots/<id>/start|stop|restart`

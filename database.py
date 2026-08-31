@@ -17,10 +17,11 @@ profiles_col = None  # type: ignore[assignment]
 settings_col = None  # type: ignore[assignment]
 outbox_col = None  # type: ignore[assignment]
 _counters_col = None  # type: ignore[assignment]
+users_col = None  # type: ignore[assignment]
 
 
 def init_db() -> None:
-    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, profiles_col, settings_col, outbox_col, _counters_col
+    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, profiles_col, settings_col, outbox_col, _counters_col, users_col
     try:
         mongo_client = MongoClient(
             MONGO_URI,
@@ -45,12 +46,15 @@ def init_db() -> None:
     settings_col = db["settings"]
     outbox_col = db["outbox"]
     _counters_col = db["counters"]
+    users_col = db["users"]
 
     bots_col.create_index([("user_id", ASCENDING)])
     bots_col.create_index([("approval", ASCENDING)])
     bots_col.create_index([("status", ASCENDING)])
     envs_col.create_index([("bot_id", ASCENDING)], unique=False)
     envs_col.create_index([("bot_id", ASCENDING), ("key", ASCENDING)], unique=True)
+    users_col.create_index([("email", ASCENDING)], unique=True)
+    users_col.create_index([("firebase_uid", ASCENDING)], sparse=True)
 
     for aid in ADMIN_IDS:
         admins_col.update_one({"user_id": aid}, {"$setOnInsert": {"user_id": aid}}, upsert=True)
@@ -293,3 +297,91 @@ def db_take_outbox() -> dict | None:
         return_document=True,
     )
     return row
+
+
+# --- User accounts (email/password + Firebase/GitHub OAuth) ---
+
+def db_create_user(email: str, password_hash: str, display_name: str = "") -> int:
+    """Register a new user with email + password. Returns user_id."""
+    user_id = _next_id("user_id")
+    users_col.insert_one({
+        "_id": user_id,
+        "email": email.lower().strip(),
+        "password_hash": password_hash,
+        "display_name": display_name or email.split("@")[0],
+        "auth_method": "email",
+        "firebase_uid": None,
+        "github_uid": None,
+        "photo_url": None,
+        "created_at": datetime.utcnow().isoformat(),
+    })
+    return user_id
+
+
+def db_get_user_by_email(email: str) -> dict | None:
+    row = users_col.find_one({"email": email.lower().strip()})
+    if row:
+        row["id"] = row["_id"]
+    return row
+
+
+def db_get_user_by_id(user_id: int) -> dict | None:
+    row = users_col.find_one({"_id": user_id})
+    if row:
+        row["id"] = row["_id"]
+    return row
+
+
+def db_get_user_by_firebase_uid(firebase_uid: str) -> dict | None:
+    row = users_col.find_one({"firebase_uid": firebase_uid})
+    if row:
+        row["id"] = row["_id"]
+    return row
+
+
+def db_get_user_by_github_uid(github_uid: str) -> dict | None:
+    row = users_col.find_one({"github_uid": github_uid})
+    if row:
+        row["id"] = row["_id"]
+    return row
+
+
+def db_upsert_oauth_user(
+    provider: str,
+    provider_uid: str,
+    email: str,
+    display_name: str = "",
+    photo_url: str = "",
+) -> int:
+    """Create or link an OAuth user. Returns user_id."""
+    field = f"{provider}_uid"
+    existing = users_col.find_one({field: provider_uid})
+    if existing:
+        return existing["_id"]
+
+    if email:
+        existing_email = users_col.find_one({"email": email.lower().strip()})
+        if existing_email:
+            users_col.update_one(
+                {"_id": existing_email["_id"]},
+                {"$set": {field: provider_uid, "photo_url": photo_url or existing_email.get("photo_url")}},
+            )
+            return existing_email["_id"]
+
+    user_id = _next_id("user_id")
+    users_col.insert_one({
+        "_id": user_id,
+        "email": email.lower().strip() if email else "",
+        "password_hash": None,
+        "display_name": display_name or (email.split("@")[0] if email else f"{provider}_user"),
+        "auth_method": provider,
+        "firebase_uid": provider_uid if provider == "google" else None,
+        "github_uid": provider_uid if provider == "github" else None,
+        "photo_url": photo_url,
+        "created_at": datetime.utcnow().isoformat(),
+    })
+    return user_id
+
+
+def db_update_user_photo(user_id: int, photo_url: str) -> None:
+    users_col.update_one({"_id": user_id}, {"$set": {"photo_url": photo_url}})

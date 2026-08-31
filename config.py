@@ -59,6 +59,25 @@ WEB_URL = os.environ.get("WEB_URL", "http://localhost:8000")
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
+# --- Firebase Admin (Google sign-in) ---
+# Path to the Firebase Admin SDK service-account JSON, or the base64/raw JSON string.
+FIREBASE_CREDENTIALS = os.environ.get("FIREBASE_CREDENTIALS", "")
+FIREBASE_DATABASE_URL = os.environ.get("FIREBASE_DATABASE_URL", "")
+# Web API key used to verify Firebase Auth ID tokens client-side is optional here;
+# when set, we use firebase_admin to decode tokens server-side.
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "")
+# --- Firebase Web SDK config (for the client-side Google sign-in popup) ---
+FIREBASE_WEB_API_KEY = os.environ.get("FIREBASE_WEB_API_KEY", "")
+FIREBASE_AUTH_DOMAIN = os.environ.get("FIREBASE_AUTH_DOMAIN", "")
+FIREBASE_STORAGE_BUCKET = os.environ.get("FIREBASE_STORAGE_BUCKET", "")
+FIREBASE_MESSAGING_SENDER_ID = os.environ.get("FIREBASE_MESSAGING_SENDER_ID", "")
+FIREBASE_WEB_APP_ID = os.environ.get("FIREBASE_WEB_APP_ID", "")
+
+# --- GitHub OAuth app ---
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
+GITHUB_REDIRECT_URI = os.environ.get("GITHUB_REDIRECT_URI", f"{os.environ.get('WEB_URL', 'http://localhost:8000')}/auth/github/callback")
+
 # --- AI ---
 A4F_API_URL = os.environ.get("A4F_API_URL", "")
 A4F_API_KEY = os.environ.get("A4F_API_KEY", "")

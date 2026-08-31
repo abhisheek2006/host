@@ -9,10 +9,10 @@ Environment variables are encrypted and stored in the database.
 import asyncio
 import io
 import os
+import re
 import sys
 import uuid
 import time
-import secrets
 import shutil
 import logging
 import threading
@@ -44,10 +44,10 @@ from database import (
     db_save_subscription, db_remove_subscription, db_load_subscriptions,
     db_add_active_user, db_load_active_users, db_add_admin, db_remove_admin,
     db_load_admins, db_pending_count, db_get_pending_bots, db_get_approved_stopped,
-    db_count_approved, db_save_login_code, db_get_login_code, db_delete_login_code,
-    db_delete_login_code_expired, db_save_profile,
+    db_count_approved, db_save_profile,
     db_get_setting, db_set_setting, db_is_maintenance,
     db_save_outbox, db_take_outbox,
+    db_get_user_by_email, db_get_user_by_id,
 )
 from r2_storage import r2_upload, r2_download, r2_delete, r2_upload_profile
 import database
@@ -78,7 +78,8 @@ class HostingBot(Client):
         commands = [
             types.BotCommand("start", "Open the main menu"),
             types.BotCommand("bots", "List your hosted bots"),
-            types.BotCommand("web_login", "Get code for the web dashboard"),
+            types.BotCommand("register", "Create a web dashboard account"),
+            types.BotCommand("login", "Log in to the web dashboard"),
             types.BotCommand("mpx", "Talk to MPX AI"),
             types.BotCommand("env", "View a bot's environment variables"),
             types.BotCommand("help", "Show available commands"),
@@ -112,6 +113,8 @@ _user_notify_lock = threading.Lock()
 
 # Text being awaited per user (for subscription, admin, env management)
 awaiting_input: dict[int, str] = {}
+
+re_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -869,7 +872,8 @@ async def cmd_help(client: Client, message: types.Message) -> None:
         "/start - Main menu\n"
         "/bots - List your bots\n"
         "/env <bot_id> - View environment variables\n"
-        "/web_login - Get a code for the web dashboard\n"
+        "/register - Create a web dashboard account\n"
+        "/login - How to log in to the web dashboard\n"
         "/help - This help\n\n"
         "Upload `.py` or `.zip` to host.\n"
         "All files need admin approval.",
@@ -929,64 +933,129 @@ async def cmd_ping(client: Client, message: types.Message) -> None:
     await msg.edit_text(f"Pong!\nLatency: {lat} ms\nUptime: {get_uptime()}")
 
 
-async def _do_web_login(client: Client, uid: int, first_name: str, username: str | None) -> tuple[bool, str | None]:
-    """Shared logic for /web_login and the Web Dashboard button.
+# --- Web dashboard account registration (email + password) ---
+# User registers here in the bot, then logs in on the web dashboard with
+# those same email/password credentials. They can also register/login via
+# Google or GitHub directly on the dashboard.
 
-    Generates a one-time code, saves the user's profile + photo, and returns
-    (ok, code). Returns (False, error_text) if the bot is locked.
-    """
+_REG_STATE: dict[int, dict] = {}
+
+
+@app.on_message(filters.command("register") & filters.private)
+async def cmd_register(client: Client, message: types.Message) -> None:
+    """Register a web dashboard account directly from the bot."""
+    uid = message.from_user.id
     if bot_locked and not is_admin(uid):
-        return False, "🔒 Bot locked by admin. Try later."
+        await message.reply_text("🔒 Bot locked by admin. Try later.")
+        return
+    _REG_STATE[uid] = {"step": "email"}
+    await message.reply_text(
+        "📝 **Register for the Web Dashboard**\n\n"
+        "Send your **email address** (step 1 of 3).\n"
+        "/cancel to abort."
+    )
 
-    code = f"{secrets.randbelow(1000000):06d}"
-    db_delete_login_code_expired()
-    db_save_login_code(uid, code, datetime.utcnow() + timedelta(minutes=5))
 
-    # Fetch + persist the user's Telegram profile for the dashboard profile section
-    bio = "No bio"
-    photo_key = None
-    try:
-        chat = await app.get_chat(uid)
-        bio = chat.bio or "No bio"
-    except Exception as e:
-        logger.error("web_login fetch bio %d: %s", uid, e)
-    try:
-        photos = app.get_chat_photos(uid, limit=1)
-        async for p in photos:
-            media = await client.download_media(p.file_id, in_memory=True)
-            photo_key = r2_upload_profile(uid, media.getvalue(), p.mime_type or "image/jpeg")
-            break
-    except Exception as e:
-        logger.error("web_login fetch photo %d: %s", uid, e)
-    try:
-        db_save_profile(uid, first_name, username, bio, photo_key)
-    except Exception as e:
-        logger.error("web_login save profile %d: %s", uid, e)
-
-    return True, code
+@app.on_message(filters.command("login") & filters.private)
+async def cmd_login(client: Client, message: types.Message) -> None:
+    """Explain how to log in to the web dashboard."""
+    uid = message.from_user.id
+    if bot_locked and not is_admin(uid):
+        await message.reply_text("🔒 Bot locked by admin. Try later.")
+        return
+    await message.reply_text(
+        f"🔐 **Web Dashboard Login**\n\n"
+        f"1. Open the dashboard: {WEB_URL}/dashboard\n"
+        f"2. If you already registered, enter your **email + password**.\n"
+        f"3. New here? Use **Continue with Google** / **Continue with GitHub**, "
+        f"or run /register here to create an email account.\n\n"
+        f"Your account is the same on the dashboard and the bot.",
+    )
 
 
 @app.on_message(filters.command("web_login") & filters.private)
 async def cmd_web_login(client: Client, message: types.Message) -> None:
-    """Generate a one-time login code for the web dashboard."""
+    """Legacy alias: explain registration instead of the old one-time code."""
+    await cmd_login(client, message)
+
+
+def _handle_registration(uid: int, text: str) -> tuple[str | None, str | None]:
+    """Progress the registration state machine.
+    Returns (prompt_for_next:str|None, result:str|None|'done').
+    If result is an error string, show it. If 'done', registration finished.
+    If prompt_for_next is set, ask that question."""
+    state = _REG_STATE.get(uid)
+    if not state:
+        return None, None
+    step = state["step"]
+    if step == "email":
+        email = text.lower().strip()
+        if not re_EMAIL.match(email):
+            return None, "Please send a **valid email address**."
+        state["email"] = email
+        state["step"] = "password"
+        return "Now send a **password** (min 6 characters).", None
+    if step == "password":
+        if len(text) < 6:
+            return None, "Password must be at least **6 characters**."
+        state["password"] = text
+        state["step"] = "confirm"
+        return "Now **confirm** your password by sending it again.", None
+    if step == "confirm":
+        if text != state["password"]:
+            return None, "Passwords do not match. Send your **password again**."
+        email = state["email"]
+        if db_get_user_by_email(email):
+            _REG_STATE.pop(uid, None)
+            return None, f"An account with `{email}` already exists.\nLog in at {WEB_URL}/dashboard"
+        try:
+            from werkzeug.security import generate_password_hash
+            user_id = database.db_create_user(email, generate_password_hash(state["password"]), display_name=email.split("@")[0])
+        except Exception as e:
+            logger.error("bot register failed: %s", e)
+            _REG_STATE.pop(uid, None)
+            return None, "Could not create the account. Please try again."
+        database.db_add_active_user(user_id)
+        active_users.add(user_id)
+        _REG_STATE.pop(uid, None)
+        _notify_user_sync(
+            OWNER_ID,
+            f"👤 **New Web User!**\n\nEmail: `{email}`\nUser ID: `{user_id}`\nTelegram: `{uid}`",
+        )
+        return None, "done"
+    return None, None
+
+
+@app.on_message(filters.private & filters.text)
+async def handle_reg_text(client: Client, message: types.Message) -> None:
+    """Process in-progress registration steps before anything else."""
     uid = message.from_user.id
-    ok, code = await _do_web_login(client, uid, message.from_user.first_name, message.from_user.username)
-    if not ok:
-        await message.reply_text(code)
+    if uid not in _REG_STATE:
         return
-    await message.reply_text(
-        f"🔑 **Web Dashboard Login**\n\n"
-        f"Your one-time login code:\n\n"
-        f"`{code}`\n\n"
-        f"Open the dashboard and enter this code:\n"
-        f"{WEB_URL}/dashboard\n\n"
-        f"⏱️ Code expires in 5 minutes and can only be used once."
-    )
+    if not (message.text or "").strip():
+        return
+    prompt, result = _handle_registration(uid, (message.text or "").strip())
+    if prompt:
+        await message.reply_text(prompt)
+        return
+    if result == "done":
+        await message.reply_text(
+            f"🎉 **Registration complete!**\n\n"
+            f"Open the dashboard and log in:\n"
+            f"{WEB_URL}/dashboard\n\n"
+            f"Use your email + password (or Google / GitHub).",
+        )
+        return
+    if result:
+        await message.reply_text(result)
+        return
+    await message.reply_text("Let's continue registering. /cancel to abort.")
 
 
 @app.on_message(filters.command("cancel") & filters.private)
 async def cmd_cancel(client: Client, message: types.Message) -> None:
     awaiting_input.pop(message.from_user.id, None)
+    _REG_STATE.pop(message.from_user.id, None)
     await message.reply_text("Cancelled.")
 
 
@@ -1189,11 +1258,15 @@ async def handle_document(client: Client, message: types.Message) -> None:
 # ---------------------------------------------------------------------------
 
 
-@app.on_message(filters.private & ~filters.command(["start", "help", "bots", "env", "mpx", "pending", "ping", "cancel", "web_login"]))
+@app.on_message(filters.private & ~filters.command(["start", "help", "bots", "env", "mpx", "pending", "ping", "cancel", "web_login", "register", "login"]))
 async def handle_text(client: Client, message: types.Message) -> None:
     uid = message.from_user.id
     text = (message.text or "").strip()
     if not text:
+        return
+
+    # While a dashboard registration is in progress, ignore menu buttons.
+    if uid in _REG_STATE:
         return
 
     # User menu (reply keyboard) routing
@@ -1537,18 +1610,13 @@ async def cb_menu(client: Client, cb: types.CallbackQuery) -> None:
         )
 
     elif action == "web_login_btn":
-        ok, code = await _do_web_login(client, uid, cb.from_user.first_name, cb.from_user.username)
-        if not ok:
-            await cb.answer(code if code else "Failed", show_alert=True)
-            return
         await cb.answer()
         await cb.message.reply_text(
-            f"🔑 **Web Dashboard Login**\n\n"
-            f"Your one-time login code:\n\n"
-            f"`{code}`\n\n"
-            f"Open the dashboard and enter this code:\n"
-            f"{WEB_URL}/dashboard\n\n"
-            f"⏱️ Code expires in 5 minutes and can only be used once."
+            f"🌐 **Web Dashboard**\n\n"
+            f"Open it here: {WEB_URL}/dashboard\n\n"
+            f"Log in with your **email + password**, or use **Continue with "
+            f"Google** / **Continue with GitHub**.\n\n"
+            f"Don't have an account? Send /register to create one."
         )
 
     elif action == "run_all":
