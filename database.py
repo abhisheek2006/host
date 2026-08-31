@@ -1,7 +1,7 @@
 """Database - MongoDB collections and CRUD operations."""
 
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pymongo import MongoClient, ASCENDING
 from config import MONGO_URI, MONGO_DB_NAME, ADMIN_IDS, logger
 
@@ -15,13 +15,14 @@ envs_col = None  # type: ignore[assignment]
 login_col = None  # type: ignore[assignment]
 profiles_col = None  # type: ignore[assignment]
 settings_col = None  # type: ignore[assignment]
+visits_col = None  # type: ignore[assignment]
 outbox_col = None  # type: ignore[assignment]
 _counters_col = None  # type: ignore[assignment]
 users_col = None  # type: ignore[assignment]
 
 
 def init_db() -> None:
-    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, profiles_col, settings_col, outbox_col, _counters_col, users_col
+    global mongo_client, db, bots_col, subs_col, active_col, admins_col, envs_col, login_col, profiles_col, settings_col, outbox_col, _counters_col, users_col, visits_col
     try:
         mongo_client = MongoClient(
             MONGO_URI,
@@ -47,6 +48,7 @@ def init_db() -> None:
     outbox_col = db["outbox"]
     _counters_col = db["counters"]
     users_col = db["users"]
+    visits_col = db["visits"]
 
     bots_col.create_index([("user_id", ASCENDING)])
     bots_col.create_index([("approval", ASCENDING)])
@@ -385,3 +387,82 @@ def db_upsert_oauth_user(
 
 def db_update_user_photo(user_id: int, photo_url: str) -> None:
     users_col.update_one({"_id": user_id}, {"$set": {"photo_url": photo_url}})
+
+
+# --- Analytics / visitor tracking ---
+
+
+def _day_key(dt: datetime | None = None) -> str:
+    """YYYY-MM-DD key for the (UTC) day this datetime falls on."""
+    return (dt or datetime.utcnow()).strftime("%Y-%m-%d")
+
+
+def db_track_pageview() -> None:
+    """Record a single page view for today (increment a day-keyed counter)."""
+    key = _day_key()
+    visits_col.update_one({"_id": key}, {"$inc": {"count": 1}}, upsert=True)
+
+
+def db_visit_stats(days: int = 30) -> dict:
+    """Counts of visits. Returns {total, today, this_week, series:[{date,count}]}."""
+    today = _day_key()
+    this_week_start = _day_key(datetime.utcnow())
+    series = {}
+    for row in visits_col.find():
+        series[row["_id"]] = row.get("count", 0)
+    total = sum(series.values())
+    t_days = max(1, days)
+    # last N days including today
+    start = (datetime.utcnow() - timedelta(days=t_days - 1)).strftime("%Y-%m-%d")
+    out = []
+    step = datetime.strptime(start, "%Y-%m-%d")
+    for _ in range(t_days):
+        k = step.strftime("%Y-%m-%d")
+        out.append({"date": k, "count": series.get(k, 0)})
+        step += timedelta(days=1)
+    week = sum(v for k, v in series.items() if k >= this_week_start)
+    return {"total": total, "today": series.get(today, 0), "this_week": week, "series": out}
+
+
+def db_user_stats() -> dict:
+    """User + bot aggregates for the admin analytics board."""
+    total_users = users_col.count_documents({})
+    today_key = datetime.utcnow().strftime("%Y-%m-%d")
+    week_start = (datetime.utcnow() - timedelta(days=6)).strftime("%Y-%m-%d")
+    users_today = users_col.count_documents({"created_at": {"$gte": today_key}})
+    users_week = users_col.count_documents({"created_at": {"$gte": week_start}})
+    active_users = active_col.count_documents({})
+    total_bots = bots_col.count_documents({})
+    pending_bots = bots_col.count_documents({"approval": "pending"})
+    running_bots = bots_col.count_documents({"status": "running"})
+
+    # last 14 days of signups
+    signups = {}
+    start = (datetime.utcnow() - timedelta(days=13)).strftime("%Y-%m-%d")
+    for u in users_col.find({"created_at": {"$gte": start}}, {"created_at": 1}):
+        d = (u.get("created_at") or "")[:10]
+        if d:
+            signups[d] = signups.get(d, 0) + 1
+    series = []
+    step = datetime.strptime(start, "%Y-%m-%d")
+    for _ in range(14):
+        k = step.strftime("%Y-%m-%d")
+        series.append({"date": k, "count": signups.get(k, 0)})
+        step += timedelta(days=1)
+
+    auth_methods = {}
+    for u in users_col.find({}, {"auth_method": 1}):
+        m = u.get("auth_method") or "unknown"
+        auth_methods[m] = auth_methods.get(m, 0) + 1
+
+    return {
+        "total_users": total_users,
+        "users_today": users_today,
+        "users_this_week": users_week,
+        "active_users": active_users,
+        "total_bots": total_bots,
+        "pending_bots": pending_bots,
+        "running_bots": running_bots,
+        "signups_14d": series,
+        "auth_methods": auth_methods,
+    }

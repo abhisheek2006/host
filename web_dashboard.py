@@ -848,6 +848,27 @@ MAINTENANCE_NOTICE = (
 )
 
 
+@app.post("/api/track/pageview")
+def api_track_pageview():
+    database.db_track_pageview()
+    return jsonify({"ok": True})
+
+
+@app.get("/api/admin/stats")
+def api_admin_stats():
+    try:
+        _require_admin()
+    except PermissionError:
+        return jsonify({"error": "Not authenticated"}), 401
+    visits = database.db_visit_stats(14)
+    stats = {
+        "users": database.db_user_stats(),
+        "visits": {"total": visits["total"], "today": visits["today"], "this_week": visits["this_week"]},
+        "visit_series": visits["series"],
+    }
+    return jsonify(stats)
+
+
 @app.post("/api/admin/login")
 def api_admin_login():
     body = request.get_json(silent=True) or {}
